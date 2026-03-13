@@ -1,0 +1,487 @@
+import React from 'react';
+import { 
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
+  PieChart, Pie, Cell, Legend, CartesianGrid 
+} from 'recharts';
+import { Bell, Plus, ArrowUpRight, ArrowDownRight, MoreHorizontal, Calendar, Video, Phone } from 'lucide-react';
+import GlassCard from '../components/ui/GlassCard';
+import Badge from '../components/ui/Badge';
+
+// --- MOCK DATA ---
+const pipelineData = [
+  { name: 'Applied', value: 1284, rate: '100%', fill: 'rgba(255, 107, 0, 1.0)' },
+  { name: 'Screened', value: 876, rate: '68%', fill: 'rgba(255, 107, 0, 0.85)' },
+  { name: 'Shortlist', value: 342, rate: '27%', fill: 'rgba(255, 107, 0, 0.70)' },
+  { name: 'Interview', value: 89, rate: '7%', fill: 'rgba(255, 107, 0, 0.55)' },
+  { name: 'Offer', value: 23, rate: '2%', fill: 'rgba(255, 107, 0, 0.40)' },
+  { name: 'Hired', value: 12, rate: '1%', fill: 'rgba(255, 107, 0, 0.25)' },
+];
+
+const sourcesData = [
+  { name: 'Email (28%)', value: 360, fill: '#FF6B00' },
+  { name: 'Resume (24%)', value: 308, fill: '#FF8C42' },
+  { name: 'LinkedIn (22%)', value: 282, fill: '#FFA366' },
+  { name: 'HRMS (16%)', value: 205, fill: '#FFB380' },
+  { name: 'Referral (10%)', value: 129, fill: '#E55A00' },
+];
+
+const skillsData = [
+  { name: 'Python', required: 85, available: 110 },
+  { name: 'React', required: 70, available: 85 },
+  { name: 'AWS', required: 65, available: 40 },
+  { name: 'SQL', required: 50, available: 95 },
+  { name: 'Node.js', required: 45, available: 60 },
+  { name: 'ML/AI', required: 40, available: 15 },
+];
+
+const candidatesData = [
+  { id: 1, name: 'Priya Sharma', avatar: 'P', source: 'LinkedIn', skills: ['Python', 'AWS'], score: 96, status: 'Offer' },
+  { id: 2, name: 'James Wilson', avatar: 'J', source: 'Referral', skills: ['React', 'Node.js'], score: 92, status: 'Interview' },
+  { id: 3, name: 'Elena Rodriguez', avatar: 'E', source: 'Email', skills: ['ML/AI', 'Python'], score: 88, status: 'Screening' },
+  { id: 4, name: 'Marcus Chen', avatar: 'M', source: 'Upload', skills: ['AWS', 'SQL'], score: 85, status: 'Shortlist' },
+  { id: 5, name: 'Sarah Jenkins', avatar: 'S', source: 'HRMS', skills: ['React', 'CSS'], score: 79, status: 'Applied' },
+];
+
+const aiFeedData = [
+  { time: '2m ago', text: 'Parsed resume: Priya Sharma (Python, AWS, 5yr exp)' },
+  { time: '5m ago', text: 'Duplicate detected: John Smith merged with Jon Smith' },
+  { time: '12m ago', text: 'AI scored 34 new candidates for Backend Engineer role' },
+  { time: '18m ago', text: 'Gmail sync: 8 new resumes ingested' },
+  { time: '25m ago', text: "NLP search: 'senior react dev Mumbai' → 12 matches" },
+  { time: '1h ago', text: 'Auto-emailed screening links to 5 shortlisted candidates' },
+  { time: '2h ago', text: 'Vector embedded 142 new historical candidate profiles' },
+];
+
+const interviewsData = [
+  { id: 1, name: 'James Wilson', avatar: 'J', role: 'Full Stack Dev', time: '10:00 AM', type: 'Video', interviewer: 'Alex T.' },
+  { id: 2, name: 'Priya Sharma', avatar: 'P', role: 'Backend Eng', time: '11:30 AM', type: 'Phone', interviewer: 'Sarah M.' },
+  { id: 3, name: 'Elena Rodriguez', avatar: 'E', role: 'ML Researcher', time: '2:00 PM', type: 'Video', interviewer: 'David K.' },
+  { id: 4, name: 'Marcus Chen', avatar: 'M', role: 'Data Engineer', time: '4:15 PM', type: 'Video', interviewer: 'Lisa R.' },
+];
+
+// --- CUSTOM TOOLTIPS ---
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="glass-panel p-3 border border-orange/30 shadow-[0_4px_20px_rgba(255,107,0,0.15)] rounded-xl bg-white/90 backdrop-blur-md">
+        <p className="font-bold text-gray-900 mb-1">{label}</p>
+        {payload.map((entry, index) => (
+          <p key={index} className="text-sm" style={{ color: entry.color || '#FF6B00' }}>
+            {entry.name}: <span className="font-bold">{entry.value}</span>
+            {entry.payload.rate && <span className="ml-2 text-xs text-gray-400">({entry.payload.rate})</span>}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
+// --- MAIN COMPONENT ---
+const Dashboard = () => {
+  const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+  return (
+    <div className="p-8 pb-20 min-h-screen">
+      
+      {/* ━━━ TOP HEADER ━━━ */}
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center">
+            Good morning, Sarah <span className="ml-2 text-2xl wave">👋</span>
+          </h1>
+          <p className="text-gray-500 mt-1 font-medium">{currentDate}</p>
+        </div>
+        <div className="flex items-center space-x-4">
+          <button className="glass-panel p-2.5 rounded-full hover:bg-white/10 transition-colors relative">
+            <Bell size={20} className="text-gray-500" />
+            <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-orange rounded-full border-2 border-[#F5F5F7]"></span>
+          </button>
+          <button className="bg-[#FF6B00] text-gray-900 px-5 py-2.5 rounded-full font-bold shadow-[0_4px_16px_rgba(255,107,0,0.3)] hover:bg-[#FF8C42] hover:shadow-[0_4px_20px_rgba(255,107,0,0.4)] transition-all flex items-center">
+            <Plus size={18} className="mr-2" />
+            Post New Job
+          </button>
+        </div>
+      </div>
+
+      {/* ━━━ KPI STATS ROW ━━━ */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Stat 1 */}
+        <GlassCard className="relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 text-orange group-hover:opacity-20 transition-opacity">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          </div>
+          <h3 className="text-gray-500 font-medium text-sm mb-2">Total Candidates</h3>
+          <div className="flex items-end space-x-3 mb-1">
+            <span className="text-4xl font-bold text-[#FF6B00] drop-shadow-[0_0_12px_rgba(255,107,0,0.2)]">1,284</span>
+            <div className="flex items-center text-[#FF6B00] text-sm pb-1 font-semibold">
+              <ArrowUpRight size={16} className="mr-0.5" /> +12%
+            </div>
+          </div>
+          <p className="text-gray-400 text-xs font-medium">this week</p>
+        </GlassCard>
+
+        {/* Stat 2 */}
+        <GlassCard className="relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 text-orange group-hover:opacity-20 transition-opacity">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          </div>
+          <h3 className="text-gray-500 font-medium text-sm mb-2">Shortlisted</h3>
+          <div className="flex items-end space-x-3 mb-1">
+            <span className="text-4xl font-bold text-[#FF6B00] drop-shadow-[0_0_12px_rgba(255,107,0,0.2)]">342</span>
+            <div className="flex items-center text-[#FF6B00] text-sm pb-1 font-semibold">
+              <ArrowUpRight size={16} className="mr-0.5" /> +8%
+            </div>
+          </div>
+          <p className="text-gray-400 text-xs font-medium">this week</p>
+        </GlassCard>
+
+        {/* Stat 3 */}
+        <GlassCard className="relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 text-orange group-hover:opacity-20 transition-opacity">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          </div>
+          <h3 className="text-gray-500 font-medium text-sm mb-2">Interviews Scheduled</h3>
+          <div className="flex items-end justify-between mb-1">
+            <span className="text-4xl font-bold text-[#FF6B00] drop-shadow-[0_0_12px_rgba(255,107,0,0.2)]">28</span>
+            <div className="pb-1">
+               <Badge variant="orange" className="!bg-[#FF6B00]/20 !border-[#FF6B00]/30 shadow-[0_0_10px_rgba(255,107,0,0.15)] flex items-center">
+                 <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B00] mr-1.5 animate-pulse"></span>
+                 Today
+               </Badge>
+            </div>
+          </div>
+          <p className="text-gray-400 text-xs font-medium">across all roles</p>
+        </GlassCard>
+
+        {/* Stat 4 */}
+        <GlassCard className="relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 text-orange group-hover:opacity-20 transition-opacity">
+             <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          </div>
+          <h3 className="text-gray-500 font-medium text-sm mb-2">Avg Time-to-Hire</h3>
+          <div className="flex items-end space-x-3 mb-1">
+            <span className="text-4xl font-bold text-[#FF6B00] drop-shadow-[0_0_12px_rgba(255,107,0,0.2)]">18<span className="text-xl ml-1 text-[#FF8C42]">d</span></span>
+            <div className="flex items-center text-[#FF6B00] text-sm pb-1 font-semibold">
+              <ArrowDownRight size={16} className="mr-0.5" /> -3 days
+            </div>
+          </div>
+          <p className="text-gray-400 text-xs font-medium">improvement vs last month</p>
+        </GlassCard>
+      </div>
+
+      {/* ━━━ MAIN CONTENT GRID ━━━ */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+        
+        {/* Left Column (Main Charts/Tables) - Takes up 3 cols on xl screens */}
+        <div className="xl:col-span-3 flex flex-col gap-8">
+          
+          {/* CHARTS ROW */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            {/* ━━━ PIPELINE FUNNEL ━━━ */}
+            <GlassCard className="lg:col-span-2 flex flex-col p-6 h-[340px]">
+              <h2 className="text-lg font-bold text-gray-900 mb-6">Hiring Pipeline</h2>
+              <div className="flex-1 w-full h-full min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    layout="vertical"
+                    data={pipelineData}
+                    margin={{ top: 0, right: 30, left: 20, bottom: 0 }}
+                  >
+                    <XAxis type="number" hide />
+                    <YAxis 
+                      dataKey="name" 
+                      type="category" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: '#AEAEB2', fontSize: 13, fontWeight: 500 }}
+                      width={90}
+                    />
+                    <Tooltip cursor={{ fill: 'transparent' }} content={<CustomTooltip />} />
+                    <Bar 
+                      dataKey="value" 
+                      radius={[0, 8, 8, 0]} 
+                      barSize={24}
+                    >
+                      {pipelineData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </GlassCard>
+
+            {/* ━━━ SOURCES PIE CHART ━━━ */}
+            <GlassCard className="flex flex-col p-6 h-[340px]">
+              <h2 className="text-lg font-bold text-gray-900 mb-2">Sources</h2>
+              <div className="flex-1 w-full relative min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={sourcesData}
+                      cx="50%"
+                      cy="45%"
+                      innerRadius={55}
+                      outerRadius={80}
+                      paddingAngle={4}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {sourcesData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                {/* Center Text */}
+                <div className="absolute top-[45%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+                  <div className="text-xl font-bold text-gray-900 leading-none">1,284</div>
+                  <div className="text-[10px] text-gray-500 font-semibold tracking-wider mt-1 uppercase">Total</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-x-2 gap-y-2 mt-auto">
+                 {sourcesData.slice(0, 4).map((source, i) => (
+                   <div key={i} className="flex items-center text-xs text-gray-500">
+                     <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: source.fill }}></div>
+                     <span className="truncate">{source.name.split(' ')[0]}</span>
+                   </div>
+                 ))}
+                 <div className="flex items-center text-xs text-gray-500">
+                     <div className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: '#E55A00' }}></div>
+                     <span className="truncate">Referral</span>
+                 </div>
+              </div>
+            </GlassCard>
+          </div>
+
+          {/* SECOND CHARTS ROW */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* ━━━ SKILL DEMAND BAR CHART ━━━ */}
+            <GlassCard className="p-6 h-[320px] flex flex-col">
+              <h2 className="text-lg font-bold text-gray-900 mb-1">Skill Demand</h2>
+              <p className="text-xs text-gray-400 mb-6">Required vs Available</p>
+              <div className="flex-1 w-full min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={skillsData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                    <XAxis 
+                      dataKey="name" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: '#AEAEB2', fontSize: 12 }} 
+                      dy={10}
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: '#636366', fontSize: 12 }}
+                    />
+                    <Tooltip cursor={{ fill: 'transparent' }} content={<CustomTooltip />} />
+                    <Bar dataKey="required" name="Required" fill="#FF6B00" radius={[4, 4, 0, 0]} barSize={12} />
+                    <Bar dataKey="available" name="Available" fill="rgba(255,107,0,0.35)" radius={[4, 4, 0, 0]} barSize={12} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex justify-center mt-4 space-x-6 text-xs text-gray-500 font-medium">
+                <div className="flex items-center"><div className="w-2.5 h-2.5 rounded-sm bg-[#FF6B00] mr-2"></div>Required</div>
+                <div className="flex items-center"><div className="w-2.5 h-2.5 rounded-sm bg-[rgba(255,107,0,0.35)] mr-2"></div>Available</div>
+              </div>
+            </GlassCard>
+
+            {/* ━━━ TODAY'S INTERVIEWS ━━━ */}
+            <GlassCard className="p-6 h-[320px] flex flex-col">
+              <div className="flex justify-between items-center mb-6">
+                 <h2 className="text-lg font-bold text-gray-900">Today's Interviews</h2>
+                 <button className="text-[#FF6B00] text-sm font-medium hover:text-[#FF8C42] transition-colors">See Calendar</button>
+              </div>
+              <div className="overflow-y-auto pr-2 space-y-4 flex-1 custom-scrollbar">
+                {interviewsData.map((interview) => (
+                  <div key={interview.id} className="glass-panel p-4 rounded-xl border border-glass-border hover:border-[#FF6B00]/30 transition-colors flex items-center justify-between group">
+                     <div className="flex items-center space-x-4">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF6B00] to-[rgba(255,107,0,0.2)] flex items-center justify-center text-gray-900 font-bold shadow-[0_0_10px_rgba(255,107,0,0.2)]">
+                          {interview.avatar}
+                        </div>
+                        <div>
+                           <div className="font-bold text-gray-900 text-sm">{interview.name}</div>
+                           <div className="text-xs text-gray-500">{interview.role}</div>
+                        </div>
+                     </div>
+                     <div className="flex flex-col items-end">
+                        <Badge variant="orange" className="!bg-[#FF6B00]/10 !text-[#FF6B00] !border-[#FF6B00]/20 mb-1">
+                          {interview.time}
+                        </Badge>
+                        <div className="flex items-center text-[10px] text-gray-400 font-medium">
+                          {interview.type === 'Video' ? <Video size={10} className="mr-1"/> : <Phone size={10} className="mr-1"/>}
+                          with {interview.interviewer}
+                        </div>
+                     </div>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+            
+          </div>
+
+          {/* ━━━ RECENT CANDIDATES TABLE ━━━ */}
+          <GlassCard className="p-6 overflow-hidden flex flex-col">
+             <div className="flex justify-between items-center mb-6">
+                <h2 className="text-lg font-bold text-gray-900">Recent Top Matches</h2>
+                <button className="text-[#FF6B00] text-sm font-medium hover:text-[#FF8C42] transition-colors flex items-center">
+                  View full database <ArrowUpRight size={14} className="ml-1" />
+                </button>
+             </div>
+             <div className="overflow-x-auto">
+               <table className="w-full text-left border-collapse">
+                 <thead>
+                   <tr className="text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-glass-border">
+                     <th className="pb-4 pt-2 pl-4">Candidate</th>
+                     <th className="pb-4 pt-2">Source</th>
+                     <th className="pb-4 pt-2">Core Skills</th>
+                     <th className="pb-4 pt-2 w-1/4">AI Match</th>
+                     <th className="pb-4 pt-2">Status</th>
+                     <th className="pb-4 pt-2"></th>
+                   </tr>
+                 </thead>
+                 <tbody className="divide-y divide-glass-border/50 text-sm">
+                   {candidatesData.map((cand) => (
+                     <tr key={cand.id} className="hover:bg-[rgba(255,107,0,0.08)] transition-colors group cursor-pointer">
+                       <td className="py-4 pl-4 whitespace-nowrap">
+                         <div className="flex items-center">
+                           <div className="w-8 h-8 rounded-full bg-[#F5F5F7] border border-glass-border flex items-center justify-center text-[#FF6B00] font-bold text-xs mr-3 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)]">
+                             {cand.avatar}
+                           </div>
+                           <span className="font-semibold text-gray-900 group-hover:text-[#FF6B00] transition-colors">{cand.name}</span>
+                         </div>
+                       </td>
+                       <td className="py-4 whitespace-nowrap">
+                         <span className="text-gray-500 text-xs font-medium bg-white px-2 py-1 rounded-md border border-glass-border">{cand.source}</span>
+                       </td>
+                       <td className="py-4 whitespace-nowrap">
+                         <div className="flex space-x-1.5">
+                           {cand.skills.map((s, i) => (
+                             <span key={i} className="text-xs text-[#FF6B00] border border-[#FF6B00]/30 bg-[#FF6B00]/10 px-2 py-0.5 rounded text-center">
+                               {s}
+                             </span>
+                           ))}
+                         </div>
+                       </td>
+                       <td className="py-4 whitespace-nowrap pr-6">
+                         <div className="flex items-center space-x-3">
+                           <div className="flex-1 h-1.5 bg-white rounded-full overflow-hidden border border-glass-border">
+                             <div className="h-full bg-[#FF6B00] shadow-[var(--orange-glow)]" style={{ width: `${cand.score}%` }}></div>
+                           </div>
+                           <span className="font-bold text-[#FF6B00] text-xs w-6">{cand.score}%</span>
+                         </div>
+                       </td>
+                       <td className="py-4 whitespace-nowrap">
+                         <Badge variant={cand.status === 'Offer' ? 'success' : cand.status === 'Interview' ? 'orange' : 'default'} className="font-medium">
+                           {cand.status}
+                         </Badge>
+                       </td>
+                       <td className="py-4 pr-4 text-right">
+                         <button className="text-gray-400 hover:text-[#FF6B00] transition-colors p-1 opacity-0 group-hover:opacity-100">
+                           <MoreHorizontal size={18} />
+                         </button>
+                       </td>
+                     </tr>
+                   ))}
+                 </tbody>
+               </table>
+             </div>
+          </GlassCard>
+
+        </div>
+
+        {/* ━━━ RIGHT COLUMN: AI ACTIVITY FEED ━━━ */}
+        <div className="xl:col-span-1 h-full">
+          <GlassCard className="h-full flex flex-col p-6 sticky top-8">
+            <div className="flex items-center justify-between mb-8 pb-4 border-b border-glass-border">
+               <div>
+                  <h2 className="text-lg font-bold text-gray-900 flex items-center">
+                    <span className="relative flex h-3 w-3 mr-3 mt-0.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF6B00] opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-[#FF6B00]"></span>
+                    </span>
+                    Live AI Feed
+                  </h2>
+                  <p className="text-xs text-gray-400 ml-6 mt-0.5 font-medium">System activity & intelligence</p>
+               </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto pr-2 space-y-6 custom-scrollbar relative">
+              {/* Vertical connecting line */}
+              <div className="absolute left-[7px] top-2 bottom-2 w-px bg-gradient-to-b from-[#FF6B00]/40 via-glass-border to-transparent -z-10"></div>
+              
+              {aiFeedData.map((item, index) => (
+                <div key={index} className="relative flex items-start group">
+                  <div className="absolute left-0 top-1">
+                     <div className="text-[#FF6B00] text-sm leading-none bg-[#F5F5F7] rounded-sm shadow-[0_0_8px_rgba(255,107,0,0.5)]">✦</div>
+                  </div>
+                  <div className="ml-6 flex-1">
+                    <div className="text-gray-800 text-[13px] leading-relaxed font-medium mb-1.5 group-hover:text-[#FF8C42] transition-colors">
+                      {item.text.replace('✦ ', '')}
+                    </div>
+                    <div className="text-[10px] font-bold tracking-wider uppercase text-gray-400 flex items-center">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3 h-3 mr-1" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                      {item.time}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <div className="pt-8 pb-4 text-center pb-2">
+                 <div className="inline-block p-2 rounded-full border border-glass-border bg-gray-50">
+                   <svg className="w-4 h-4 text-gray-400 animate-spin-slow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+                 </div>
+                 <p className="text-[10px] text-gray-400 font-semibold tracking-wider mt-2 uppercase">Listening for events...</p>
+              </div>
+            </div>
+          </GlassCard>
+        </div>
+
+      </div>
+      
+      {/* Scrollbar styling injected directly for this page if not global */}
+      <style dangerouslySetInnerHTML={{__html: `
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 107, 0, 0.2);
+          border-radius: 4px;
+        }
+        .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+          background: rgba(255, 107, 0, 0.5);
+        }
+        .wave {
+          animation-name: wave-animation;
+          animation-duration: 2.5s;
+          animation-iteration-count: infinite;
+          transform-origin: 70% 70%;
+          display: inline-block;
+        }
+        @keyframes wave-animation {
+          0% { transform: rotate( 0.0deg) }
+          10% { transform: rotate(14.0deg) }
+          20% { transform: rotate(-8.0deg) }
+          30% { transform: rotate(14.0deg) }
+          40% { transform: rotate(-4.0deg) }
+          50% { transform: rotate(10.0deg) }
+          60% { transform: rotate( 0.0deg) }
+          100% { transform: rotate( 0.0deg) }
+        }
+        .animate-spin-slow {
+          animation: spin 3s linear infinite;
+        }
+      `}} />
+    </div>
+  );
+};
+
+export default Dashboard;
