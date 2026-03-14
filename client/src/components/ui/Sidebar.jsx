@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, UserSearch, Target, Link as LinkIcon, BarChart3, Settings, GitMerge } from 'lucide-react';
+import { LayoutDashboard, Users, UserSearch, Target, Link as LinkIcon, BarChart3, Settings, GitMerge, Zap } from 'lucide-react';
 import Badge from './Badge';
 
 const navGroups = [
@@ -41,7 +41,7 @@ const Sidebar = () => {
   React.useEffect(() => {
     const fetchCount = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/v1/candidates/duplicates');
+        const res = await fetch('/api/v1/candidates/duplicates');
         const data = await res.json();
         setDuplicateCount(data.count || 0);
       } catch (e) { console.error('Error fetching duplicates:', e); }

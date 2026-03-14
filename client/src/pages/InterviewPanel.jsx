@@ -45,15 +45,43 @@ const InterviewPanel = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [candRes, qRes] = await Promise.all([
-          api.get(`/candidates/${id || '0eef202c-d9f2-4d68-b2e5-9592848ec751'}`), // Fallback for dev
-          api.get('/candidates/questions')
-        ]);
-        setCandidate(candRes.data);
-        setQuestions(qRes.data);
+        // Fetch questions (no candidate-specific data needed)
+        const qRes = await api.get('/candidates/questions');
+        setQuestions(qRes.data || []);
+
+        // Fetch candidate — use the id param or fall back to listing all and picking first
+        let candData = null;
+        if (id) {
+          const candRes = await api.get(`/candidates/${id}`);
+          candData = candRes.data;
+        } else {
+          // No ID: use the first candidate in the DB as demo
+          const listRes = await api.get('/candidates?limit=1');
+          const items = listRes.data?.data || listRes.data || [];
+          if (items.length > 0) {
+            const firstId = items[0]?.id;
+            if (firstId) {
+              const candRes = await api.get(`/candidates/${firstId}`);
+              candData = candRes.data;
+            }
+          }
+        }
+        setCandidate(candData);
         setIsLoading(false);
       } catch (err) {
-        addToast('Error loading interview data', 'error');
+        console.error('InterviewPanel fetch error:', err);
+        addToast('Could not load all interview data — working in offline mode', 'error');
+        // Provide a dummy candidate so the panel still renders
+        setCandidate({
+          id: 'demo',
+          full_name: 'Demo Candidate',
+          current_role: 'Software Engineer',
+          location: 'N/A',
+          summary: 'Loaded in offline mode.',
+          overall_score: 0,
+          years_of_experience: 0,
+          skills: []
+        });
         setIsLoading(false);
       }
     };
@@ -123,7 +151,21 @@ const InterviewPanel = () => {
     }
   };
 
-  if (isLoading) return <div className="h-full flex items-center justify-center bg-slate-950 text-white">Loading Command Center...</div>;
+  if (isLoading) return (
+    <div className="h-full flex items-center justify-center bg-[#0F1115] text-white flex-col gap-4">
+      <div className="w-10 h-10 rounded-2xl border-4 border-[#FF6B00]/30 border-t-[#FF6B00] animate-spin"></div>
+      <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Initializing Command Center...</p>
+    </div>
+  );
+
+  if (!candidate) return (
+    <div className="h-full flex items-center justify-center bg-[#0F1115] text-white flex-col gap-4">
+      <p className="text-lg font-bold text-slate-400">No candidate found. Please start from the Candidates page.</p>
+      <button onClick={() => navigate('/candidates')} className="px-6 py-3 bg-[#FF6B00] text-black rounded-xl font-black">
+        Go to Candidates
+      </button>
+    </div>
+  );
 
   return (
     <div className="h-full flex flex-col bg-[#0F1115] text-[#E2E8F0] font-sans selection:bg-[#FF6B00]/30">

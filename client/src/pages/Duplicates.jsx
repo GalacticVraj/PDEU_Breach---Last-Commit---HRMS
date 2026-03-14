@@ -9,7 +9,7 @@ const DuplicatePairCard = ({ item, onResolve }) => {
   const handleAction = async (action) => {
     setLoading(action);
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/candidates/duplicates/${rawId}/resolve`, {
+      const res = await fetch(`/api/v1/candidates/duplicates/${rawId}/resolve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action })
@@ -146,7 +146,7 @@ const Duplicates = () => {
 
   const fetchDuplicates = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/v1/candidates/duplicates');
+      const res = await fetch('/api/v1/candidates/duplicates');
       const data = await res.json();
       setDuplicates(data.items || []);
     } catch (e) {

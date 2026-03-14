@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import GlassCard from '../components/ui/GlassCard';
 import OrangeButton from '../components/ui/OrangeButton';
 import Badge from '../components/ui/Badge';
@@ -12,7 +13,7 @@ import {
   MapPin, Briefcase, Mail, Phone, Calendar, Download,
   CheckCircle2, Sparkles, X, Star, FileText, ChevronRight,
   TrendingUp, Clock, AlertTriangle, Building, ShieldCheck,
-  Filter, MoreHorizontal, AlertCircle, Link
+  Filter, MoreHorizontal, AlertCircle, Link, Zap
 } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import api from '../api';
@@ -48,6 +49,7 @@ const CandidateModal = ({ candidate, onClose, onOpenEmail }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isReengageOpen, setIsReengageOpen] = useState(false);
   const { addToast } = useToast();
+  const navigate = useNavigate();
   if (!candidate) return null;
 
   const isGhost = candidate.ghost_status || 

@@ -335,6 +335,12 @@ router.get('/compare/multi', (req, res) => {
   } catch (err) { res.status(500).json({ error: { message: err.message } }); }
 });
 
+// ━━━ QUESTIONS (must be before /:id to avoid being swallowed) ━━━
+router.get('/questions', (req, res) => {
+  const db = getDb();
+  res.json(db.data.questions || []);
+});
+
 // GET /candidates/:id
 router.get('/:id', (req, res) => {
   try {
@@ -1193,12 +1199,6 @@ router.post('/:id/interview-sync', (req, res) => {
 
   db.save();
   res.json({ success: true, feedback: newFeedback });
-});
-
-// ━━━ QUESTIONS ━━━
-router.get('/questions', (req, res) => {
-  const db = getDb();
-  res.json(db.data.questions || []);
 });
 
 module.exports = router;
