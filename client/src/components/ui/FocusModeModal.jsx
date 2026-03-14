@@ -3,50 +3,85 @@ import Modal from './Modal';
 import GlassCard from './GlassCard';
 import OrangeButton from './OrangeButton';
 import Badge from './Badge';
-import { Target, AlertTriangle, CheckCircle2, ChevronRight, Loader2, Calendar, Users, X, Clock, Mail, Phone } from 'lucide-react';
+import api from '../../api';
+import { Target, AlertTriangle, CheckCircle2, ChevronRight, Loader2, Calendar, Users, X, Clock, Mail, Phone, Briefcase } from 'lucide-react';
 
-const FocusModeModal = ({ isOpen, onClose }) => {
-  const [step, setStep] = useState('config'); // 'config', 'generating', 'results'
+const FocusModeModal = ({ isOpen, onClose, onPlanGenerated }) => {
+  const [step, setStep] = useState('config'); // 'config', 'generating'
   const [targetDate, setTargetDate] = useState('');
-  const [planData, setPlanData] = useState(null);
+  const [activeJobs, setActiveJobs] = useState([]);
+  const [selectedJobIds, setSelectedJobIds] = useState([]);
+  const [isLoadingJobs, setIsLoadingJobs] = useState(false);
 
-  // Reset when opened
+  // Initialize modal state and fetch active jobs
   useEffect(() => {
     if (isOpen) {
       setStep('config');
-      setTargetDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]); // Default to 7 days from now
-      setPlanData(null);
+      
+      // Default target date to coming Friday, or at least 2 days ahead
+      const d = new Date();
+      d.setDate(d.getDate() + (5 + 7 - d.getDay()) % 7);
+      if ((d - new Date()) / (1000 * 60 * 60 * 24) < 2) {
+          d.setDate(d.getDate() + 7);
+      }
+      setTargetDate(d.toISOString().split('T')[0]);
+
+      const fetchJobs = async () => {
+        setIsLoadingJobs(true);
+        try {
+          const res = await api.get('/jobs?status=Active');
+          const jobsData = res.data.data || [];
+          setActiveJobs(jobsData);
+          // By default, select all
+          setSelectedJobIds(jobsData.map(j => j.id));
+        } catch (err) {
+          console.error("Failed to load active jobs:", err);
+        } finally {
+          setIsLoadingJobs(false);
+        }
+      };
+
+      fetchJobs();
     }
   }, [isOpen]);
 
+  const handleJobSelect = (e, id) => {
+    if (e.target.checked) {
+      setSelectedJobIds(prev => [...prev, id]);
+    } else {
+      setSelectedJobIds(prev => prev.filter(jId => jId !== id));
+    }
+  };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedJobIds(activeJobs.map(j => j.id));
+    } else {
+      setSelectedJobIds([]);
+    }
+  };
+
   const handleGenerate = async () => {
+    if (selectedJobIds.length === 0) return;
     setStep('generating');
     try {
-      const response = await fetch('/api/focus/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target_date: targetDate, job_ids: [] }), // In real app, pass selected jobs
+      const response = await api.post('/hire-by-friday', {
+        target_date: targetDate, 
+        job_ids: selectedJobIds
       });
       
-      const data = await response.json();
+      const data = response.data;
       if (data.status === 'success') {
-        setPlanData(data.data);
-        setStep('results');
+          // Pass data back to Dashboard to render the Focus Mode view
+          onPlanGenerated(data.data);
+          onClose(); // Close the modal
       } else {
         throw new Error('Failed to generate plan');
       }
     } catch (err) {
       console.error(err);
-      // Fallback if API fails (e.g. server restarts)
+      // Fallback if API fails
       setTimeout(() => setStep('config'), 1500);
-    }
-  };
-
-  const getUrgencyIcon = (urgency) => {
-    switch(urgency) {
-      case 'high': return <AlertTriangle size={16} className="text-red-500" />;
-      case 'medium': return <Clock size={16} className="text-[#FF6B00]" />;
-      default: return <CheckCircle2 size={16} className="text-emerald-500" />;
     }
   };
 
@@ -81,16 +116,58 @@ const FocusModeModal = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
-              <div className="bg-[#F5F5F7] p-4 rounded-xl border border-glass-border">
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Target Roles</label>
-                <div className="flex items-center justify-between bg-white border border-glass-border rounded-lg px-4 py-2">
-                  <span className="text-gray-900 text-sm font-medium">All Open Roles</span>
-                  <Badge className="bg-gray-100 text-gray-500 border-none font-bold">12 Active</Badge>
+              <div className="bg-[#F5F5F7] p-4 rounded-xl border border-glass-border flex flex-col max-h-[220px]">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Target Roles</label>
+                  {activeJobs.length > 0 && (
+                     <label className="flex items-center space-x-2 text-xs text-gray-500 cursor-pointer">
+                       <input 
+                         type="checkbox" 
+                         checked={selectedJobIds.length === activeJobs.length}
+                         onChange={handleSelectAll}
+                         className="rounded text-[#FF6B00] focus:ring-[#FF6B00]/50 cursor-pointer"
+                       />
+                       <span>Select All</span>
+                     </label>
+                  )}
+                </div>
+                
+                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 py-1 space-y-2 bg-white border border-glass-border rounded-lg p-2">
+                   {isLoadingJobs ? (
+                      <div className="p-4 text-center text-gray-400 text-sm flex items-center justify-center">
+                          <Loader2 size={16} className="animate-spin mr-2" /> Loading jobs...
+                      </div>
+                   ) : activeJobs.length === 0 ? (
+                      <div className="p-4 text-center text-gray-400 text-sm">No active jobs found.</div>
+                   ) : activeJobs.map(job => (
+                      <label key={job.id} className={`flex items-start p-2 rounded-lg border border-transparent hover:bg-[#F5F5F7] cursor-pointer transition-colors ${selectedJobIds.includes(job.id) ? 'bg-[#FF6B00]/5 border-[#FF6B00]/20' : ''}`}>
+                         <input 
+                           type="checkbox" 
+                           className="mt-1 rounded text-[#FF6B00] focus:ring-[#FF6B00]/50"
+                           checked={selectedJobIds.includes(job.id)}
+                           onChange={(e) => handleJobSelect(e, job.id)}
+                         />
+                         <div className="ml-3 flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate">{job.title}</p>
+                            <div className="flex items-center text-[10px] text-gray-500">
+                               <Briefcase size={10} className="mr-1" />
+                               {job.department} <span className="mx-1.5">•</span> {job.location}
+                            </div>
+                         </div>
+                      </label>
+                   ))}
+                </div>
+                <div className="text-right text-[10px] text-gray-400 mt-2 font-semibold">
+                   {selectedJobIds.length} of {activeJobs.length} selected
                 </div>
               </div>
             </div>
 
-            <OrangeButton onClick={handleGenerate} className="w-full py-3 mt-auto shadow-[0_4px_16px_rgba(255,107,0,0.3)]">
+            <OrangeButton 
+              onClick={handleGenerate} 
+              disabled={selectedJobIds.length === 0}
+              className="w-full py-3 mt-auto shadow-[0_4px_16px_rgba(255,107,0,0.3)] disabled:opacity-50 disabled:shadow-none"
+            >
               Generate AI Plan <ChevronRight size={18} className="ml-2" />
             </OrangeButton>
           </div>
@@ -109,77 +186,10 @@ const FocusModeModal = ({ isOpen, onClose }) => {
           </div>
         )}
 
-        {/* STEP 3: RESULTS PLAN */}
-        {step === 'results' && planData && (
-          <div className="flex-1 flex flex-col -mx-6 -mb-6 pb-6 pt-2 h-[500px] overflow-hidden">
-             
-             {/* Header Stats */}
-             <div className="px-6 pb-4 border-b border-glass-border flex justify-between items-center">
-                <div>
-                   <h3 className="text-lg font-bold text-gray-900 leading-tight">Your Focus Plan</h3>
-                   <p className="text-xs text-gray-500 font-medium">{planData.summary.actionItemsCount} urgent actions generated.</p>
-                </div>
-                <div className="flex space-x-2">
-                   <div className="bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-center">
-                      <span className="block text-emerald-600 font-bold text-sm leading-none">{planData.summary.rolesOnTrack}</span>
-                      <span className="text-[9px] uppercase tracking-wider text-emerald-600/70 font-bold leading-none">On Track</span>
-                   </div>
-                   <div className="bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-lg text-center shadow-[inset_0_0_10px_rgba(239,68,68,0.1)]">
-                      <span className="block text-red-600 font-bold text-sm leading-none">{planData.summary.rolesAtRisk}</span>
-                      <span className="text-[9px] uppercase tracking-wider text-red-600/70 font-bold leading-none">At Risk</span>
-                   </div>
-                </div>
-             </div>
-
-             {/* Action List */}
-             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 custom-scrollbar">
-                {planData.actionItems.map((action, i) => (
-                  <GlassCard key={action.id} className="p-4 border hover:border-[#FF6B00]/40 transition-colors shadow-sm">
-                    <div className="flex items-start justify-between mb-3">
-                       <div className="flex items-center">
-                          {getUrgencyIcon(action.urgency)}
-                          <h4 className="text-sm font-bold text-gray-900 ml-2">{action.title}</h4>
-                       </div>
-                       <Badge className={`${action.urgency === 'high' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-orange-50 text-orange-600 border-orange-200'} !text-[10px] uppercase font-bold`}>
-                         {action.type.replace(/_/g, ' ')}
-                       </Badge>
-                    </div>
-                    
-                    <p className="text-xs text-gray-600 leading-relaxed mb-4">
-                      {action.description}
-                    </p>
-
-                    {action.candidate && (
-                      <div className="flex items-center bg-[#F5F5F7] p-2 rounded-xl mb-4 border border-glass-border">
-                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF6B00] to-[#E55A00] flex items-center justify-center text-white font-bold text-xs shadow-sm">
-                           {action.candidate.avatar}
-                         </div>
-                         <div className="ml-3 flex-1">
-                           <div className="text-xs font-bold text-gray-900">{action.candidate.name}</div>
-                           <div className="text-[10px] text-gray-500">{action.candidate.role}</div>
-                         </div>
-                         {action.candidate.score && (
-                           <div className="text-[#FF6B00] font-bold text-xs bg-white px-2 py-1 rounded shadow-sm border border-glass-border">
-                             {action.candidate.score}%
-                           </div>
-                         )}
-                      </div>
-                    )}
-
-                    <div className="flex justify-end pt-3 border-t border-glass-border border-dashed">
-                      <button className="text-[#FF6B00] text-xs font-bold hover:bg-[#FF6B00]/10 px-3 py-1.5 rounded-lg transition-colors flex items-center">
-                        {action.actionText} <ChevronRight size={14} className="ml-1" />
-                      </button>
-                    </div>
-                  </GlassCard>
-                ))}
-             </div>
-          </div>
-        )}
-
       </div>
     </Modal>
   );
 };
 
 export default FocusModeModal;
+

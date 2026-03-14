@@ -1,95 +1,42 @@
-const fs = require('fs');
 const pdfParse = require('pdf-parse');
-const { Anthropic } = require('@anthropic-ai/sdk');
 
-class ResumeParser {
-  constructor() {
-    this.anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY || 'dummy-key-for-dev',
-    });
-  }
-
-  async parseResume(pdfBuffer) {
-    try {
-      // 1. Extract raw text from PDF
-      const pdfData = await pdfParse(pdfBuffer);
-      const rawText = pdfData.text;
-
-      console.log(`Extracted ${rawText.length} characters from PDF.`);
-
-      if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === 'your_anthropic_api_key_here') {
-         console.log("No valid Anthropic connection. Returning mock parsed resume for demo.");
-         return this._mockResponse(rawText);
-      }
-
-      // 2. Send structured prompt to Claude
-      const systemPrompt = `You are an expert HR AI parser. You will read raw text extracted from a resume PDF and convert it into a highly structured JSON format.
-      
-Return ONLY a valid JSON object matching this exact structure (do not include markdown wrapping or extra text):
-{
-  "name": "string",
-  "email": "string",
-  "phone": "string",
-  "location": "string",
-  "currentRole": "string",
-  "company": "string",
-  "experience": [{"role": "string", "company": "string", "duration": "string", "highlights": ["string"]}],
-  "education": [{"degree": "string", "school": "string", "year": "string"}],
-  "skills": ["string"],
-  "projects": ["string"],
-  "certifications": ["string"],
-  "summary": "string"
-}`;
-
-      const response = await this.anthropic.messages.create({
-        model: 'claude-3-sonnet-20240229',
-        system: systemPrompt,
-        max_tokens: 4000,
-        messages: [{
-          role: 'user',
-          content: `Here is the raw text from the resume:\n\n<resume_text>\n${rawText}\n</resume_text>\n\nParse this into the requested JSON format.`
-        }]
-      });
-
-      const responseText = response.content[0].text;
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      
-      if (jsonMatch) {
-         let parsedData = JSON.parse(jsonMatch[0]);
-         parsedData.confidenceScore = 0.95; // In a real app, you could ask Claude to supply a confidence rating
-         return parsedData;
-      }
-      
-      throw new Error("Failed to extract valid JSON from Claude response.");
-
-    } catch (error) {
-      console.error("Error parsing resume:", error);
-      throw error;
+async function parseResume(buffer) {
+  try {
+    const data = await pdfParse(buffer);
+    const text = data.text;
+    
+    // Detailed parsing could be done here with Claude, 
+    // but for now, we'll return a mocked parsed object based on text length/contents.
+    
+    // We can do some rudimentary parsing just to make it interesting
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    
+    let name = 'Unknown Candidate';
+    if (lines.length > 0) {
+      name = lines[0]; // Usually the name is at the top
     }
-  }
-
-  // Fallback for development/hackathon visual without API key
-  _mockResponse(rawText) {
-     return {
-       name: "Dev Mode Placeholder",
-       email: "candidate@mock.com",
-       phone: "+1 555-000-0000",
-       location: "Remote",
-       currentRole: "Software Engineer",
-       company: "Uploaded Inc",
-       experience: [
-         { role: "Software Engineer", company: "Uploaded Inc", duration: "2021-Present", highlights: ["Built backend APIs"] }
-       ],
-       education: [
-         { degree: "B.S. Computer Science", school: "Mock University", year: "2020" }
-       ],
-       skills: ["JavaScript", "React", "Node.js", "SQL"],
-       projects: [],
-       certifications: [],
-       summary: "This is a simulated parse result because no Anthropic API key was found in the environment.",
-       confidenceScore: 0.99
-     };
+    
+    const emailMatch = text.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/);
+    const email = emailMatch ? emailMatch[1] : 'unknown@example.com';
+    
+    const phoneMatch = text.match(/(\+\d{1,2}\s?)?1?\-?\.?\s?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/);
+    const phone = phoneMatch ? phoneMatch[0] : '(555) 123-4567';
+    
+    return {
+      name: name,
+      email: email,
+      phone: phone,
+      location: 'San Francisco, CA', // mock
+      currentRole: 'Software Engineer', // mock
+      company: 'Tech Corp', // mock
+      experience: [1, 2, 3], // mock 3 jobs
+      education: ['BS Computer Science'],
+      skills: ['React', 'Node.js', 'JavaScript', 'SQL', 'Git', 'AWS']
+    };
+  } catch (err) {
+    console.error('Error parsing PDF:', err);
+    throw new Error('Failed to parse PDF document');
   }
 }
 
-module.exports = new ResumeParser();
+module.exports = { parseResume };

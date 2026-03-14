@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, Minimize2, Send, Bot, User, Copy, CheckCircle2 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../api';
 
 const AIChatAssistant = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -39,7 +39,7 @@ const AIChatAssistant = () => {
     setIsTyping(true);
 
     try {
-      const response = await axios.post('/api/chat', { 
+      const response = await api.post('/chat', { 
         message: userMessage,
         context: { path: location.pathname } 
       });
