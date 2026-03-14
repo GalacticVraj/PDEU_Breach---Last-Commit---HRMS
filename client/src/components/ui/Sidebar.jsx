@@ -23,7 +23,7 @@ const navGroups = [
   {
     label: 'LIVE SESSION',
     items: [
-      { id: 'interview', path: '/interview', label: 'Interview Panel', icon: <Zap size={18} />, badge: 'LIVE' },
+      { id: 'interview', path: 'https://ieee-recruitment-portal.vercel.app/interview/', label: 'Interview Panel', icon: <Zap size={18} />, badge: 'LIVE' },
     ]
   },
   {
@@ -78,15 +78,9 @@ const Sidebar = () => {
             <div className="flex flex-col space-y-1">
               {group.items.map((item) => {
                 const isActive = location.pathname === item.path;
-                return (
-                  <NavLink
-                    key={item.id}
-                    to={item.path}
-                    className={`flex items-center px-4 py-3 rounded-xl transition-all relative group ${isActive
-                        ? 'bg-[#F0F2F5] text-gray-900 font-semibold'
-                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50 font-medium'
-                      }`}
-                  >
+                const isExternal = item.path.startsWith('http');
+                const content = (
+                  <>
                     {/* Active Indicator Bar */}
                     {isActive && (
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-black rounded-r-md" />
@@ -104,6 +98,33 @@ const Sidebar = () => {
                         {getDynamicBadge(item.id, item.badge)}
                       </Badge>
                     )}
+                  </>
+                );
+
+                if (isExternal) {
+                  return (
+                    <a
+                      key={item.id}
+                      href={item.path}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center px-4 py-3 rounded-xl transition-all relative group text-gray-500 hover:text-gray-900 hover:bg-gray-50 font-medium"
+                    >
+                      {content}
+                    </a>
+                  );
+                }
+
+                return (
+                  <NavLink
+                    key={item.id}
+                    to={item.path}
+                    className={({ isActive }) => `flex items-center px-4 py-3 rounded-xl transition-all relative group ${isActive
+                        ? 'bg-[#F0F2F5] text-gray-900 font-semibold'
+                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50 font-medium'
+                      }`}
+                  >
+                    {content}
                   </NavLink>
                 );
               })}
@@ -115,10 +136,25 @@ const Sidebar = () => {
         <div className="md:hidden flex flex-row items-center justify-around w-full h-full">
           {navGroups.flatMap(g => g.items).slice(0, 5).map((item) => {
             const isActive = location.pathname === item.path;
-            return (
-              <NavLink key={item.id} to={item.path} className={`flex flex-col items-center justify-center p-2 relative ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
+            const isExternal = item.path.startsWith('http');
+            const mobileContent = (
+              <>
                 {isActive && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-black rounded-b-full" />}
                 {item.icon}
+              </>
+            );
+
+            if (isExternal) {
+              return (
+                <a key={item.id} href={item.path} target="_blank" rel="noopener noreferrer" className={`flex flex-col items-center justify-center p-2 relative text-gray-400`}>
+                  {mobileContent}
+                </a>
+              );
+            }
+
+            return (
+              <NavLink key={item.id} to={item.path} className={`flex flex-col items-center justify-center p-2 relative ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
+                {mobileContent}
               </NavLink>
             )
           })}

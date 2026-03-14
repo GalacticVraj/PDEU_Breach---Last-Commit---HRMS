@@ -1,0 +1,50 @@
+{
+  "node": {
+    "0012143e2d7228a4c895a27053637a9921d34882bc": {
+      "workers": {
+        "app/interview/page": {
+          "moduleId": 58540,
+          "async": false,
+          "exportedName": "logout",
+          "filename": "src/lib/auth.ts"
+        }
+      },
+      "layer": {
+        "app/interview/page": "rsc"
+      },
+      "exportedName": "logout",
+      "filename": "src/lib/auth.ts"
+    },
+    "0054f47e5582fc94d7d7995335705366361f0465e1": {
+      "workers": {
+        "app/interview/page": {
+          "moduleId": 58540,
+          "async": false,
+          "exportedName": "getSession",
+          "filename": "src/lib/auth.ts"
+        }
+      },
+      "layer": {
+        "app/interview/page": "rsc"
+      },
+      "exportedName": "getSession",
+      "filename": "src/lib/auth.ts"
+    },
+    "602f2d8daeb772c6db2d7596ad7084505113c7f554": {
+      "workers": {
+        "app/interview/page": {
+          "moduleId": 58540,
+          "async": false,
+          "exportedName": "login",
+          "filename": "src/lib/auth.ts"
+        }
+      },
+      "layer": {
+        "app/interview/page": "rsc"
+      },
+      "exportedName": "login",
+      "filename": "src/lib/auth.ts"
+    }
+  },
+  "edge": {}
+}

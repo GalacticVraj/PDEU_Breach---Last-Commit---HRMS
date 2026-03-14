@@ -202,7 +202,7 @@ const CandidateModal = ({ candidate, onClose, onOpenEmail }) => {
                 <FileText size={13} className="mr-1.5" /> Offer Letter
               </button>
               <button
-                onClick={() => navigate(`/interview/${candidate.id}`)}
+                onClick={() => window.open('https://ieee-recruitment-portal.vercel.app/interview/', '_blank')}
                 className="glass-panel bg-[#FF6B00]/10 text-[#FF6B00] border-[#FF6B00]/30 text-xs font-black hover:bg-[#FF6B00]/20 py-2.5 rounded-xl transition-all flex items-center justify-center animate-pulse"
               >
                 <Zap size={13} className="mr-1.5 fill-[#FF6B00]" /> Live Interview

@@ -1,0 +1,153 @@
+export const SCORING_RUBRIC = [
+    {
+        category: 'Communication Skills',
+        max: 10,
+        guide: [
+            { range: '0-2', desc: 'Incoherent / Struggling' },
+            { range: '3-4', desc: 'Average / Basic fluency' },
+            { range: '5-6', desc: 'clear points, decent flow' },
+            { range: '7-8', desc: 'Articulate, confident, structured' },
+            { range: '9-10', desc: 'Exceptional, persuasive, professional' },
+        ]
+    },
+    {
+        category: 'Technical / Domain Knowledge',
+        max: 10,
+        guide: [
+            { range: '0-2', desc: 'No basics / Wrong answers' },
+            { range: '3-4', desc: 'Weak basics' },
+            { range: '5-6', desc: 'Textbook knowledge / Average' },
+            { range: '7-8', desc: 'Strong concepts & practical sense' },
+            { range: '9-10', desc: 'Expert / Deep understanding' },
+        ]
+    },
+    {
+        category: 'Leadership Potential',
+        max: 10,
+        guide: [
+            { range: '0-2', desc: 'Passive / Avoids responsibility' },
+            { range: '3-4', desc: 'Follower mindset only' },
+            { range: '5-6', desc: 'Can manage small tasks' },
+            { range: '7-8', desc: 'Takes initiative, guides others' },
+            { range: '9-10', desc: 'Visionary, inspirer, decisive' },
+        ]
+    },
+    {
+        category: 'Teamwork & Collaboration',
+        max: 10,
+        guide: [
+            { range: '0-2', desc: 'Egoistic / Disruptive' },
+            { range: '3-4', desc: 'Loner, hesitant to share' },
+            { range: '5-6', desc: 'Cooperative' },
+            { range: '7-8', desc: 'Supportive, reliable team player' },
+            { range: '9-10', desc: 'Elevates the whole team' },
+        ]
+    },
+    {
+        category: 'Initiative & Enthusiasm',
+        max: 10,
+        guide: [
+            { range: '0-2', desc: 'Uninterested / Bored' },
+            { range: '3-4', desc: 'Did minimum required' },
+            { range: '5-6', desc: 'Interested' },
+            { range: '7-8', desc: 'Proactive, research done' },
+            { range: '9-10', desc: 'Highly driven, overflowing energy' },
+        ]
+    }
+];
+
+export const QUESTION_BANK = {
+    'Ice Breakers & Intro': [
+        "Tell us something about yourself that isn't on your resume.",
+        "If you could have any superpower, what would it be and why?",
+        "What's the last interesting thing you read or watched?",
+        "Describe your ideal weekend.",
+        "Which fictional character do you relate to the most?"
+    ],
+    'Motivation & IEEE Fit': [
+        "Why specifically IEEE SBNU over other clubs?",
+        "What do you hope to gain from this technical team in 1 year?",
+        "If you were selected, what is the FIRST thing you'd want to work on?",
+        "How do you prioritize college academics vs club work?",
+        "Tell us about a time you volunteered for something voluntarily."
+    ],
+    'General Technical (All Tracks)': [
+        "Explain the internet to a 5-year-old.",
+        "How do you approach a bug you can't solve for hours?",
+        "What is your favorite shortcut or tool that makes you productive?",
+        "Walk us through how you built your most recent project.",
+        "Tech changes fast. How do you keep up?",
+        "Rank these: Code Quality, Speed of Delivery, User Experience. Why?"
+    ],
+    'Technical: Web Development': [
+        "Difference between usage of <div>, <span>, and <section>?",
+        "What is the Box Model in CSS?",
+        "Explain 'Responsive Design' without saying 'mobile friendly'.",
+        "Why is React/Next.js popular compared to plain HTML/JS?",
+        "What is an API? How does a frontend 'talk' to a backend?",
+        "How would you optimize a slow-loading website?",
+        "What are Cookies vs LocalStorage?",
+        "SQL vs NoSQL: When to use which?",
+        "Authentication vs Authorization - what's the difference?"
+    ],
+    'Technical: AI / ML / Data Science': [
+        "What is the difference between AI, ML, and Deep Learning?",
+        "Explain Overfitting vs Underfitting like I'm a layman.",
+        "Supervised vs Unsupervised learning - give real world examples.",
+        "How would you explain a Neural Network to your grandmother?",
+        "What are the ethical concerns of AI today?",
+        "Why do we need to split data into Training and Testing sets?",
+        "Python vs R vs C++ for AI? Thoughts."
+    ],
+    'Creative & Design': [
+        "What makes a 'Bad' User Interface?",
+        "How do you decide on a color palette for a project?",
+        "Figma vs Adobe XD vs Pen & Paper - what's your process?",
+        "Critique the design of the current IEEE website (hypothetically).",
+        "How do you handle feedback that says 'I hate this design'?",
+        "Explain the difference between Vector and Raster images.",
+        "What is visual hierarchy?"
+    ],
+    'Editor & Content': [
+        "What is the difference between 'editing' and 'proofreading'?",
+        "How do you make a boring technical topic interesting to read?",
+        "Draft a 2-line catchy caption for an upcoming AI Workshop.",
+        "Check this sentence for grammar: 'Me and him went to the hackathon.'",
+        "How do you handle writer's block when a deadline is approaching?",
+        "What tools do you use for content creation? (ChatGPT, Grammarly, etc.)"
+    ],
+    'Social Media': [
+        "How does the Instagram Algorithm work (in your opinion)?",
+        "Reels vs Posts vs Stories: How would you use them for an event promotion?",
+        "How do you handle negative comments on a post?",
+        "What is a 'Call to Action' (CTA)? Give an example.",
+        "What metrics matter most? Likes, Shares, or Saves?",
+        "Plan a 1-week social media campaign for a recruitment drive."
+    ],
+    'Membership, Marketing & Sponsorship (MDSO)': [
+        "How would you pitch IEEE SBNU to a potential sponsor?",
+        "Convince a 1st year student to join IEEE with just 3 sentences.",
+        "What value does a sponsor get from supporting a college event?",
+        "How would you increase event attendance if registrations are low?",
+        "Coldcalling vs Emailing: Which is better for sponsorship and why?",
+        "Draft a generic sponsorship email subject line that gets opened."
+    ],
+    'Situational & Behavioural': [
+        "You have an exam tomorrow but a critical server bug today. What do you do?",
+        "Describe a conflict you had in a team and how YOU resolved it.",
+        "Would you rather be a leader who is feared or a leader who is loved?",
+        "You made a mistake that deleted user data. How do you tell the lead?",
+        "Your teammate is taking credit for your code. How do you handle it?"
+    ],
+    'Integrity & Values': [
+        "Did you use ChatGPT/AI for your application answers? Be honest.",
+        "What is one thing you don't know but are pretending to know?",
+        "If you realize you can't finish a task by the deadline, when do you tell us?",
+        "Have you ever broken a rule to get something done? Was it worth it?"
+    ]
+};
+
+export const TAG_OPTIONS = {
+    positive: ['Strong Learner', 'Leadership Potential', 'Creative Thinker', 'Reliable', 'Calm Problem Solver', 'Tech Wizard', 'Good Communicator'],
+    negative: ['Ego Issue', 'Copy-Paste Mindset', 'Unreliable Tone', 'Only-Certificate', 'Passive', 'Argumentative', 'Low Availability']
+};

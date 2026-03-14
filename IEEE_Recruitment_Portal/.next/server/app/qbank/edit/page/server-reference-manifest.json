@@ -1,0 +1,80 @@
+{
+  "node": {
+    "0012143e2d7228a4c895a27053637a9921d34882bc": {
+      "workers": {
+        "app/qbank/edit/page": {
+          "moduleId": 2160,
+          "async": false,
+          "exportedName": "logout",
+          "filename": "src/lib/auth.ts"
+        }
+      },
+      "layer": {
+        "app/qbank/edit/page": "rsc"
+      },
+      "exportedName": "logout",
+      "filename": "src/lib/auth.ts"
+    },
+    "0054f47e5582fc94d7d7995335705366361f0465e1": {
+      "workers": {
+        "app/qbank/edit/page": {
+          "moduleId": 2160,
+          "async": false,
+          "exportedName": "getSession",
+          "filename": "src/lib/auth.ts"
+        }
+      },
+      "layer": {
+        "app/qbank/edit/page": "rsc"
+      },
+      "exportedName": "getSession",
+      "filename": "src/lib/auth.ts"
+    },
+    "602f2d8daeb772c6db2d7596ad7084505113c7f554": {
+      "workers": {
+        "app/qbank/edit/page": {
+          "moduleId": 2160,
+          "async": false,
+          "exportedName": "login",
+          "filename": "src/lib/auth.ts"
+        }
+      },
+      "layer": {
+        "app/qbank/edit/page": "rsc"
+      },
+      "exportedName": "login",
+      "filename": "src/lib/auth.ts"
+    },
+    "00c44bd1089c10495681e88f37e27c4feb1d9cece2": {
+      "workers": {
+        "app/qbank/edit/page": {
+          "moduleId": 2160,
+          "async": false,
+          "exportedName": "getQuestions",
+          "filename": "src/lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/qbank/edit/page": "action-browser"
+      },
+      "exportedName": "getQuestions",
+      "filename": "src/lib/actions.ts"
+    },
+    "600d37d8793769fbc5af50e0dd0169d0b524f61526": {
+      "workers": {
+        "app/qbank/edit/page": {
+          "moduleId": 2160,
+          "async": false,
+          "exportedName": "updateQuestions",
+          "filename": "src/lib/actions.ts"
+        }
+      },
+      "layer": {
+        "app/qbank/edit/page": "action-browser"
+      },
+      "exportedName": "updateQuestions",
+      "filename": "src/lib/actions.ts"
+    }
+  },
+  "edge": {}
+}
