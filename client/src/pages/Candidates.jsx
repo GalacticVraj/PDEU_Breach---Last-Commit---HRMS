@@ -466,7 +466,7 @@ const Candidates = () => {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const filters = ['All', 'New', 'Shortlisted', 'Interviewing', 'Offer Extended'];
+  const filters = ['All', 'New', 'Screening', 'Shortlisted', 'Interview', 'Offer', 'Hired', '👻 Ghosts'];
 
   const fetchCandidates = useCallback(async () => {
     setIsLoading(true);
@@ -479,14 +479,20 @@ const Candidates = () => {
         setCandidates(response.data.data || []);
         setTotalCandidates(response.data.data?.length || 0);
       } else {
-        response = await api.get('/candidates', {
-          params: {
-            search: searchTerm,
-            status: selectedFilter === 'All' ? undefined : selectedFilter,
-            page: 1,
-            limit: DEFAULT_PAGE_SIZE,
-          },
-        });
+        const params = {
+          search: searchTerm || undefined,
+          page: 1,
+          limit: DEFAULT_PAGE_SIZE,
+        };
+        
+        if (selectedFilter !== 'All' && selectedFilter !== '👻 Ghosts') {
+          params.status = selectedFilter;
+        }
+        if (selectedFilter === '👻 Ghosts') {
+          params.ghost = 'true';
+        }
+
+        response = await api.get('/candidates', { params });
         setCandidates(response.data.data || []);
         setTotalCandidates(response.data.pagination?.total || 0);
       }
@@ -495,7 +501,7 @@ const Candidates = () => {
       setCandidates([]);
       setTotalCandidates(0);
     } finally {
-      setTimeout(() => setIsLoading(false), 500);
+      setTimeout(() => setIsLoading(false), 400);
     }
   }, [searchTerm, selectedFilter, isSmartSearch]);
 
@@ -555,35 +561,6 @@ const Candidates = () => {
   };
 
   
-  const filters = ['All', 'New', 'Screening', 'Shortlisted', 'Interview', 'Offer', 'Hired', '👻 Ghosts'];
-
-  const fetchCandidates = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const params = {
-        search: searchTerm || undefined,
-        page: 1,
-        limit: DEFAULT_PAGE_SIZE,
-      };
-      
-      if (selectedFilter !== 'All' && selectedFilter !== '👻 Ghosts') {
-        params.status = selectedFilter;
-      }
-      if (selectedFilter === '👻 Ghosts') {
-        params.ghost = 'true';
-      }
-
-      const response = await api.get('/candidates', { params });
-      setCandidates(response.data.data || []);
-      setTotalCandidates(response.data.pagination?.total || 0);
-    } catch (error) {
-      console.error('Error fetching candidates:', error);
-      setCandidates([]);
-      setTotalCandidates(0);
-    } finally {
-      setTimeout(() => setIsLoading(false), 400);
-    }
-  }, [searchTerm, selectedFilter]);
 
   useEffect(() => {
     fetchCandidates();
