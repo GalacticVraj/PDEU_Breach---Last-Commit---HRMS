@@ -7,8 +7,7 @@ async function parseResume(buffer) {
     
     const GROQ_API_KEY = process.env.GROQ_API_KEY;
     if (!GROQ_API_KEY) {
-      console.warn('GROQ_API_KEY not found, falling back to basic parsing');
-      return basicParse(text);
+      throw new Error('Groq API key not configured on server.');
     }
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
