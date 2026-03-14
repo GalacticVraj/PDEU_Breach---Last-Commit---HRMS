@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         // Set default header for all future requests
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        
+
         try {
           const payloadStr = atob(token.split('.')[1]);
           const payload = JSON.parse(payloadStr);
@@ -34,9 +34,13 @@ export const AuthProvider = ({ children }) => {
   }, [token]);
 
   const login = async (email, password) => {
-    const API_BASE = import.meta.env.VITE_API_BASE_URL?.replace('/v1', '') || '';
     try {
-      const response = await fetch(`${API_BASE}/api/auth/login`, {
+      // Get API base from environment variable
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+
+      console.log('🔗 Attempting login at:', `${API_BASE}/auth/login`);
+
+      const response = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
