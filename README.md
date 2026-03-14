@@ -1,17 +1,6 @@
-# 🚀 TalentOS - The AI-Powered Unified Recruitment Platform
+# 🚀 HireX - The AI-Powered Unified Recruitment Platform
 
-**TalentOS** is a premium, blazing-fast, and deeply intelligent recruitment platform built for modern HR teams. Winning design aesthetics combined with powerful local AI integrations (using `@xenova/transformers`) makes evaluating candidates seamless, even without external API keys.
-
----
-
-## 🔥 Key Features (No-API Required)
-
-- **Semantic AI Search ("Local Intelligence")**: Search 10,000+ candidates using conceptual similarity (e.g., *"Frontend experts"*). Powered by a local **all-MiniLM-L6-v2** vector engine.
-- **Instant Resume Generation**: Generate professional, print-ready HTML resumes for candidates with a single click.
-- **ATS Match Scoring**: Automatically calculate how well a candidate fits a job description using local keyword and skill matching algorithms.
-- **Intelligent Deduplication**: Multi-stage candidate matching using exact field checks and local vector similarity. Flag potential matches for manual review via the dedicated "Duplicates" dashboard.
-- **Kanban Pipeline**: Pure `@dnd-kit` powered drag-and-drop recruitment pipeline visually tracking candidate lifecycles.
-- **Jaw-Dropping Aesthetics**: Pixel-perfect implementation of glassmorphism elements, constrained exclusively to `#FF6B00` (Orange) and `#1C1C1E` (Dark Surface) palettes.
+**HireX** (formerly TalentOS) is a premium, blazing-fast, and deeply intelligent recruitment platform built for modern HR teams. Winning design aesthetics combined with powerful AI integrations (Groq/Anthropic) makes evaluating candidates seamless.
 
 ---
 
@@ -31,7 +20,7 @@ CLIENT (Vite + React)                       SERVER (Express.js)                 
 
 ## 💻 Tech Stack
 
-- **Frontend**: React 18, Vite, TailwindCSS v3, Recharts, Lucide Icons, `@dnd-kit/core`.
+- **Frontend**: React 19, Vite, TailwindCSS v4, Recharts, Lucide Icons, `@dnd-kit/core`.
 - **Backend**: Node.js 20+, Express, `@xenova/transformers`, `puppeteer`, `sharp`.
 
 ---
@@ -43,20 +32,18 @@ To run the platform natively on your machine:
 ### 1. Backend Setup
 ```bash
 cd server
-npm install --ignore-scripts
-# Critical: Explicitly install sharp for local vector engine support
-npm install sharp 
-node server.js
+npm install
+npm run dev
 ```
-*Backend runs at: [http://localhost:5000](http://localhost:5000)*
+*Backend runs at: [http://localhost:3001](http://localhost:3001)*
 
 ### 2. Frontend Setup
 ```bash
 cd client
-npm install --ignore-scripts
-npm run dev -- --port 3000
+npm install
+npm run dev
 ```
-*Frontend runs at: [http://localhost:3000](http://localhost:3000)*
+*Frontend runs at: [http://localhost:5173](http://localhost:5173)*
 
 ---
 
