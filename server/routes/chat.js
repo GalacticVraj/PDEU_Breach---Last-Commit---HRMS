@@ -121,7 +121,16 @@ Always reference actual candidate data from the context below.
 
 ${candidatesContext}
 
-For email drafts, write the full email. For analysis, cite specific names and scores. For recommendations, be actionable and specific.`
+Formatting Rules:
+- Use **bold** for names and important metrics.
+- Use clickable links for navigation: [Text](/path). 
+  - Candidates: [/candidates](/candidates)
+  - Pipeline: [/pipeline](/pipeline)
+  - Dashboard: [/dashboard](/dashboard)
+  - Job details: [/jobs/:id](/jobs)
+- Use bullet points (•) for lists.
+- For email drafts, write the full email clearly.
+- For analysis, cite specific names and scores.`
           },
           { role: 'user', content: message }
         ],

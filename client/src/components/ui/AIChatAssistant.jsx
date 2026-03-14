@@ -1,13 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Minimize2, Send, Bot, User, Copy, CheckCircle2 } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../../api';
 
 const AIChatAssistant = () => {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { role: 'assistant', text: 'Hi! I am your HireX AI Assistant. How can I help you find or manage candidates today?' }
+    { role: 'assistant', text: 'Hi! I am your HireX AI Assistant. I have access to your live pipeline and candidate database.\n\nAsk me to:\n• Find **top matches** for a role\n• Identify **ghost candidates**\n• Draft **outreach emails**\n• Summarize **pipeline health**' }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -47,15 +45,17 @@ const AIChatAssistant = () => {
       setIsTyping(false);
       const reply = response.data.reply;
 
-      setMessages(prev => [...prev, { role: 'assistant', text: '', isTyping: true }]);
-
       // Typewriter simulation for pure visual wow
       let currentText = '';
       const chars = reply.split('');
 
-      for (let i = 0; i < chars.length; i++) {
-        await new Promise(resolve => setTimeout(resolve, 15));
-        currentText += chars[i];
+      // Create a temporary message to be updated by the typewriter
+      setMessages(prev => [...prev, { role: 'assistant', text: '', isTyping: true }]);
+
+      const chunkSize = 3; // Type in small chunks for speed and smoothness
+      for (let i = 0; i < chars.length; i += chunkSize) {
+        await new Promise(resolve => setTimeout(resolve, 10));
+        currentText += chars.slice(i, i + chunkSize).join('');
         setMessages(prev => {
           const newMsg = [...prev];
           newMsg[newMsg.length - 1] = { role: 'assistant', text: currentText, isTyping: true };
@@ -137,20 +137,40 @@ const AIChatAssistant = () => {
                   key={idx}
                   className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm group relative ${
+                  <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm group relative ${
                     msg.role === 'user' 
-                      ? 'bg-[#FF6B00] text-gray-900 rounded-br-sm shadow-[0_4px_12px_rgba(255,107,0,0.2)]'
-                      : 'bg-white border border-glass-border text-gray-500 rounded-bl-sm'
+                      ? 'bg-[#FF6B00] text-gray-900 rounded-br-sm shadow-[0_4px_12px_rgba(255,107,0,0.2)] font-medium'
+                      : 'bg-white border border-glass-border text-gray-600 rounded-bl-sm shadow-sm'
                     }`}>
-                    {msg.role === 'assistant' && !msg.isTyping ? (
+                    {msg.role === 'assistant' ? (
                        <>
-                         <div dangerouslySetInnerHTML={{__html: msg.text.replace(/\n/g, '<br/>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}} />
-                         <button 
-                           onClick={() => handleCopy(msg.text, idx)}
-                           className="absolute -right-8 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-[#FF6B00] bg-white border border-glass-border rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-all"
-                         >
-                           {copiedId === idx ? <CheckCircle2 size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                         </button>
+                         <div 
+                           className="prose-chat whitespace-pre-wrap leading-relaxed"
+                           onClick={(e) => {
+                             // Handle clickable redirects
+                             const target = e.target;
+                             if (target.tagName === 'A') {
+                               e.preventDefault();
+                               const href = target.getAttribute('href');
+                               if (href) navigate(href);
+                             }
+                           }}
+                           dangerouslySetInnerHTML={{
+                             __html: msg.text
+                               .replace(/\n/g, '<br/>')
+                               .replace(/\*\*(.*?)\*\*/g, '<strong class="text-gray-900">$1</strong>')
+                               .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="text-[#FF6B00] font-bold hover:underline cursor-pointer">$1</a>')
+                               .replace(/• (.*?)(<br\/>|$)/g, '<div class="flex items-start my-1"><span class="text-[#FF6B00] mr-2">•</span><span>$1</span></div>')
+                           }} 
+                         />
+                         {!msg.isTyping && (
+                           <button 
+                             onClick={() => handleCopy(msg.text, idx)}
+                             className="absolute -right-10 top-2 p-1.5 text-gray-300 hover:text-[#FF6B00] bg-white border border-glass-border rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-all z-20"
+                           >
+                             {copiedId === idx ? <CheckCircle2 size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                           </button>
+                         )}
                        </>
                     ) : (
                       msg.text
