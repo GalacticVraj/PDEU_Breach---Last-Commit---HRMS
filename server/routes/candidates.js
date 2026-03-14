@@ -895,4 +895,151 @@ router.get('/semantic-search', async (req, res) => {
     res.status(500).json({ error: { message: err.message } });
   }
 });
+
+// ── GET /candidates/:id/email-templates ──────────────────────────────────────
+router.get('/:id/email-templates', (req, res) => {
+  try {
+    const db = getDb();
+    const c = db.data.candidates.find(x => x.id === req.params.id);
+    if (!c) return res.status(404).json({ error: { message: 'Candidate not found' } });
+
+    const company = db.data.company_profile || {};
+    const hrName = company.hr_name || 'Talent Team';
+    const companyName = company.name || 'TalentFlow';
+    const firstName = (c.full_name || 'there').split(' ')[0];
+
+    // Find the role applied for (most recent application)
+    const application = (db.data.applications || [])
+      .filter(a => a.candidate_id === c.id)
+      .sort((a, b) => (b.applied_at || '').localeCompare(a.applied_at || ''))[0];
+    const job = application ? (db.data.jobs || []).find(j => j.id === application.job_id) : null;
+    const role = job?.title || c.current_role || 'the position';
+
+    const templates = {
+      offer: {
+        subject: `Congratulations — Offer of Employment at ${companyName}`,
+        body: `Dear ${firstName},\n\nWe are thrilled to extend this formal offer of employment for the position of ${role} at ${companyName}.\n\nAfter a thorough evaluation of your qualifications and the insights gained throughout our interview process, we are confident you will be an outstanding addition to our team.\n\nPlease review the attached offer letter which outlines all the terms of employment in full. We kindly request that you reply confirming your acceptance at your earliest convenience.\n\nWe are genuinely excited about the journey ahead with you and look forward to welcoming you aboard.\n\nWarm regards,\n${hrName}\n${companyName}`
+      },
+      rejection: {
+        subject: `Your Application Update — ${companyName}`,
+        body: `Dear ${firstName},\n\nThank you sincerely for taking the time to interview for the ${role} role at ${companyName}. We appreciated the opportunity to learn about your background and experience.\n\nOur team was genuinely impressed by your strengths. However, after careful deliberation, we have decided to move forward with another candidate whose profile more closely matches our current needs.\n\nThis was a difficult decision and we encourage you to apply for future opportunities with us — your profile will remain on file. We wish you every success in your career ahead.\n\nWith warm regards,\n${hrName}\n${companyName}`
+      },
+      interview_invite: {
+        subject: `Interview Invitation — ${role} at ${companyName}`,
+        body: `Dear ${firstName},\n\nWe are pleased to invite you to the next round of interviews for the ${role} position at ${companyName}.\n\nWe have been thoroughly impressed with your background and are eager to continue the conversation. Could you please reply with your availability for a 45-minute session over the next three to five business days?\n\nWe look forward to speaking with you and learning more about what you'd bring to the team.\n\nBest regards,\n${hrName}\n${companyName}`
+      },
+      follow_up: {
+        subject: `Following Up on Your Application — ${role}`,
+        body: `Dear ${firstName},\n\nI hope you are doing well. I wanted to follow up regarding your application for the ${role} role at ${companyName}.\n\nWe are still actively reviewing candidates and wanted to check whether you remain interested in the opportunity and if you have any questions we can answer for you.\n\nPlease feel free to reply to this email — we'd love to hear from you.\n\nBest regards,\n${hrName}\n${companyName}`
+      },
+      custom: {
+        subject: `Message from ${companyName}`,
+        body: `Dear ${firstName},\n\n\n\nBest regards,\n${hrName}\n${companyName}`
+      }
+    };
+
+    res.json({ status: 'success', data: templates });
+  } catch (err) { res.status(500).json({ error: { message: err.message } }); }
+});
+
+// ── POST /candidates/:id/send-email ───────────────────────────────────────────
+const nodemailer = require('nodemailer');
+
+router.post('/:id/send-email', async (req, res) => {
+  try {
+    const db = getDb();
+    const c = db.data.candidates.find(x => x.id === req.params.id);
+    if (!c) return res.status(404).json({ error: { message: 'Candidate not found' } });
+
+    const { to, subject, body, email_type } = req.body;
+    if (!to || !subject || !body) {
+      return res.status(400).json({ error: { message: 'to, subject, and body are required' } });
+    }
+
+    // Build transporter — prefer Gmail env vars, then generic SMTP, then Ethereal test
+    let transporter;
+    if (process.env.GMAIL_USER && process.env.GMAIL_PASS) {
+      transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
+        auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_PASS }
+      });
+    } else if (process.env.SMTP_HOST) {
+      transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        secure: false,
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+      });
+    } else {
+      const testAccount = await nodemailer.createTestAccount();
+      transporter = nodemailer.createTransport({
+        host: 'smtp.ethereal.email',
+        port: 587,
+        secure: false,
+        auth: { user: testAccount.user, pass: testAccount.pass }
+      });
+    }
+
+    const fromName = process.env.SMTP_FROM_NAME || (db.data.company_profile?.name || 'TalentFlow');
+    const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.GMAIL_USER || 'noreply@talentflow.ai';
+
+    const info = await transporter.sendMail({
+      from: `"${fromName}" <${fromEmail}>`,
+      to,
+      subject,
+      text: body,
+      html: body.replace(/\n/g, '<br>')
+    });
+
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    const sentAt = new Date().toISOString();
+
+    // Log to email_logs
+    if (!db.data.email_logs) db.data.email_logs = [];
+    const logEntry = {
+      id: uuidv4(),
+      candidate_id: c.id,
+      email_type: email_type || 'custom',
+      subject,
+      to,
+      sent_at: sentAt,
+      sent_by: 'Recruiter',
+      status: 'sent',
+      message_id: info.messageId,
+      preview_url: previewUrl || null
+    };
+    db.data.email_logs.push(logEntry);
+
+    // Log to activity_log
+    db.insert('activity_log', {
+      id: uuidv4(),
+      candidate_id: c.id,
+      job_id: null,
+      action: `Email Sent — ${email_type || 'custom'}`,
+      details: `Subject: ${subject}`,
+      actor: 'Recruiter',
+      created_at: sentAt
+    });
+
+    db.save();
+
+    console.log('Email sent:', info.messageId);
+    if (previewUrl) console.log('Preview URL:', previewUrl);
+
+    res.json({
+      status: 'success',
+      data: {
+        messageId: info.messageId,
+        sentAt,
+        previewUrl: previewUrl || null
+      }
+    });
+  } catch (err) {
+    console.error('Send Email Error:', err);
+    res.status(500).json({ error: { message: err.message } });
+  }
+});
+
 module.exports = router;

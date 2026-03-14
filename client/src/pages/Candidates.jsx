@@ -12,7 +12,7 @@ import {
   MapPin, Briefcase, Mail, Phone, Calendar, Download,
   CheckCircle2, Sparkles, X, Star, FileText, ChevronRight,
   TrendingUp, Clock, AlertTriangle, Building, ShieldCheck,
-  Filter, MoreHorizontal, AlertCircle, Link
+  Filter, MoreHorizontal, AlertCircle, Link, Send, Loader2
 } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import api from '../api';
@@ -44,14 +44,14 @@ const CustomRadarTooltip = ({ active, payload }) => {
   return null;
 };
 
-const CandidateModal = ({ candidate, onClose }) => {
+const CandidateModal = ({ candidate, onClose, onOpenEmail }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isReengageOpen, setIsReengageOpen] = useState(false);
   const { addToast } = useToast();
   if (!candidate) return null;
 
-  const isGhost = candidate.ghost_status || 
-    ((candidate.status === 'Interviewing' || candidate.status === 'Offer') && 
+  const isGhost = candidate.ghost_status ||
+    ((candidate.status === 'Interviewing' || candidate.status === 'Offer') &&
      candidate.lastActive && candidate.lastActive.includes('d') && parseInt(candidate.lastActive) >= 3);
 
   const handleReengage = () => {
@@ -182,13 +182,13 @@ const CandidateModal = ({ candidate, onClose }) => {
             )}
             <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => onOpenEmail(candidate, 'outreach')}
+                onClick={() => onOpenEmail(candidate)}
                 className="glass-panel text-gray-900 text-xs font-semibold hover:bg-white/10 py-2.5 rounded-xl transition-all flex items-center justify-center"
               >
                 <Mail size={13} className="mr-1.5" /> Email
               </button>
               <button
-                onClick={() => onOpenEmail(candidate, 'offer')}
+                onClick={() => onOpenEmail(candidate)}
                 className="glass-panel text-gray-900 text-xs font-semibold hover:bg-white/10 py-2.5 rounded-xl transition-all flex items-center justify-center"
               >
                 <FileText size={13} className="mr-1.5" /> Send Offer
@@ -459,6 +459,7 @@ const Candidates = () => {
   const [selectedCandidateIds, setSelectedCandidateIds] = useState([]);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isSmartSearch, setIsSmartSearch] = useState(false);
 
 // Email Modal State
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
@@ -466,7 +467,7 @@ const Candidates = () => {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const filters = ['All', 'New', 'Screening', 'Shortlisted', 'Interview', 'Offer', 'Hired', '👻 Ghosts'];
+  const filters = ['All', 'New', 'Screening', 'Shortlisted', 'Interviewing', 'Offer', 'Hired', '👻 Ghosts'];
 
   const fetchCandidates = useCallback(async () => {
     setIsLoading(true);
@@ -505,59 +506,60 @@ const Candidates = () => {
     }
   }, [searchTerm, selectedFilter, isSmartSearch]);
 
-  const handleOpenEmailModal = async (candidate, type) => {
+  // ── Email compose state ──────────────────────────────────────────────────
+  const [emailCandidate, setEmailCandidate] = useState(null);
+  const [emailTemplates, setEmailTemplates] = useState(null);
+  const [emailType, setEmailType] = useState('offer');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+
+  const EMAIL_TYPES = [
+    { value: 'offer',           label: '📄 Offer Letter' },
+    { value: 'rejection',       label: '❌ Rejection' },
+    { value: 'interview_invite',label: '📅 Interview Invite' },
+    { value: 'follow_up',       label: '🔔 Follow Up' },
+    { value: 'custom',          label: '✏️ Custom' },
+  ];
+
+  const handleOpenEmailModal = async (candidate) => {
+    setEmailCandidate(candidate);
+    setEmailType('offer');
+    setEmailSubject('');
+    setEmailBody('');
+    setEmailTemplates(null);
+    setIsEmailModalOpen(true);
     try {
-      const res = await fetch(`/api/v1/company/email-compose/${candidate.id}?type=${type}`);
-      const d = await res.json();
-      if (d.data) {
-        setEmailConfig({
-          candidateId: candidate.id,
-          to: d.data.to,
-          subject: d.data.subject,
-          body: d.data.body,
-          type: type,
-          includeAttachment: type === 'offer'
-        });
-        setIsEmailModalOpen(true);
-      }
+      const res = await api.get(`/candidates/${candidate.id}/email-templates`);
+      const templates = res.data.data;
+      setEmailTemplates(templates);
+      setEmailSubject(templates.offer.subject);
+      setEmailBody(templates.offer.body);
     } catch (err) {
-      addToast('Failed to load email template', 'error');
+      addToast('Failed to load email templates', 'error');
     }
   };
 
-  const handleSendEmail = async () => {
-    setIsSendingEmail(true);
-    try {
-      if (emailConfig.includeAttachment) {
-        addToast('Generating PDF attachment...', 'info');
-        const res = await fetch('/api/v1/company/generate-offer-pdf', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(emailConfig)
-        });
-        if (!res.ok) throw new Error('Failed to generate PDF');
-
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Offer_Letter.pdf`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-
-        setTimeout(() => addToast('PDF downloaded! Please drag & drop it into the Gmail window.', 'success'), 500);
-      }
-
-      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(emailConfig.to)}&su=${encodeURIComponent(emailConfig.subject)}&body=${encodeURIComponent(emailConfig.body)}`;
-      window.open(gmailUrl, '_blank');
-
-      setIsEmailModalOpen(false);
-    } catch (err) {
-      console.error(err);
-      addToast(err.message || 'Failed to prepare email', 'error');
-    } finally {
-      setIsSendingEmail(false);
+  const handleEmailTypeChange = (type) => {
+    setEmailType(type);
+    if (emailTemplates && emailTemplates[type]) {
+      setEmailSubject(emailTemplates[type].subject);
+      setEmailBody(emailTemplates[type].body);
     }
+  };
+
+  const handleSendEmail = () => {
+    if (!emailCandidate?.email) {
+      addToast('No email address on file for this candidate', 'error');
+      return;
+    }
+    const gmailUrl =
+      `https://mail.google.com/mail/?view=cm&fs=1` +
+      `&to=${encodeURIComponent(emailCandidate.email)}` +
+      `&su=${encodeURIComponent(emailSubject)}` +
+      `&body=${encodeURIComponent(emailBody)}`;
+    window.open(gmailUrl, '_blank');
+    setIsEmailModalOpen(false);
+    addToast(`Gmail opened for ${emailCandidate.name}`, 'success');
   };
 
   
@@ -799,7 +801,11 @@ const Candidates = () => {
                         </p>
                       </td>
                       <td className="px-6 py-4 text-right whitespace-nowrap">
-                        <button className="text-gray-400 hover:text-[#FF6B00] p-1.5 rounded-lg hover:bg-[#FF6B00]/10 transition-colors mr-1">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleOpenEmailModal(cand); }}
+                          className="text-gray-400 hover:text-[#FF6B00] p-1.5 rounded-lg hover:bg-[#FF6B00]/10 transition-colors mr-1"
+                          title="Send Email"
+                        >
                           <Mail size={16} />
                         </button>
                         <button className="text-gray-400 hover:text-gray-900 p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
@@ -828,7 +834,11 @@ const Candidates = () => {
       </GlassCard>
 
       {/* CANDIDATE DETAIL MODAL */}
-      <CandidateModal candidate={selectedCandidate} onClose={() => setSelectedCandidate(null)} />
+      <CandidateModal 
+        candidate={selectedCandidate} 
+        onClose={() => setSelectedCandidate(null)} 
+        onOpenEmail={handleOpenEmailModal}
+      />
 
       {/* CANDIDATE COMPARISON MODAL */}
       <CandidateComparison
@@ -847,6 +857,98 @@ const Candidates = () => {
           addToast(`${newCand.name || 'Candidate'} added successfully!`, 'success');
         }}
       />
+
+      {/* ━━━ EMAIL COMPOSE MODAL ━━━ */}
+      <Modal
+        isOpen={isEmailModalOpen}
+        onClose={() => !isSendingEmail && setIsEmailModalOpen(false)}
+        title="✉️ Compose Email"
+      >
+        <div className="space-y-4">
+
+          {/* TO field */}
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">To</label>
+            <div className="bg-[#F5F5F7] border border-glass-border rounded-xl px-4 py-2.5 flex items-center gap-3">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#FF6B00] to-[#E55A00] flex items-center justify-center text-white font-bold text-sm shrink-0">
+                {emailCandidate?.avatar}
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-gray-900 text-sm truncate">{emailCandidate?.name}</p>
+                <p className="text-xs text-gray-500 truncate">{emailCandidate?.email || 'No email on file'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Email type dropdown */}
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Email Type</label>
+            <select
+              value={emailType}
+              onChange={e => handleEmailTypeChange(e.target.value)}
+              className="w-full bg-white border border-glass-border rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-[#FF6B00]/50 transition-colors cursor-pointer"
+            >
+              {EMAIL_TYPES.map(t => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Subject */}
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Subject</label>
+            {emailTemplates ? (
+              <input
+                type="text"
+                value={emailSubject}
+                onChange={e => setEmailSubject(e.target.value)}
+                className="w-full bg-white border border-glass-border rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-[#FF6B00]/50 transition-colors"
+              />
+            ) : (
+              <div className="bg-[#F5F5F7] border border-glass-border rounded-xl px-4 py-2.5 h-10 animate-pulse" />
+            )}
+          </div>
+
+          {/* Body */}
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Message</label>
+            {emailTemplates ? (
+              <textarea
+                value={emailBody}
+                onChange={e => setEmailBody(e.target.value)}
+                rows={10}
+                className="w-full bg-white border border-glass-border rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-[#FF6B00]/50 transition-colors resize-none font-mono leading-relaxed"
+                style={{ minHeight: '300px' }}
+              />
+            ) : (
+              <div className="bg-[#F5F5F7] border border-glass-border rounded-xl px-4 py-3 animate-pulse" style={{ minHeight: '300px' }} />
+            )}
+            <p className="text-right text-xs text-gray-400 mt-1">{emailBody.length} chars</p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-1 border-t border-glass-border">
+            <button
+              onClick={() => setIsEmailModalOpen(false)}
+              disabled={isSendingEmail}
+              className="px-5 py-2.5 text-sm font-bold text-gray-500 hover:text-gray-900 disabled:opacity-40 transition-colors"
+            >
+              Cancel
+            </button>
+            <OrangeButton
+              onClick={handleSendEmail}
+              disabled={isSendingEmail || !emailCandidate?.email || !emailSubject || !emailBody}
+              className="shadow-[0_4px_16px_rgba(255,107,0,0.3)] px-6"
+            >
+              {isSendingEmail ? (
+                <><Loader2 size={16} className="mr-2 animate-spin" />Sending...</>
+              ) : (
+                <><Send size={16} className="mr-2" />Send Email</>
+              )}
+            </OrangeButton>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
