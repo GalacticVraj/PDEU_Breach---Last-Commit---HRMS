@@ -3,6 +3,7 @@ const router = express.Router();
 const { getDb } = require('../database');
 const { v4: uuidv4 } = require('uuid');
 const aiSimulator = require('../utils/aiSimulator');
+const vectorEngine = require('../utils/vector-engine');
 
 function buildFrontendCandidate(c, db) {
   const skills = (db.data.candidate_skills || []).filter(s => s.candidate_id === c.id).map(s => s.skill_name);
@@ -437,6 +438,90 @@ router.post('/bulk/action', (req, res) => {
     db.save();
     res.json({ message: `Bulk action on ${candidate_ids.length} candidates` });
   } catch (err) { res.status(500).json({ error: { message: err.message } }); }
+});
+
+// ── Semantic Search & Indexing ──
+
+/**
+ * Compiles a rich text representation of a candidate for embedding.
+ */
+function getCandidateSearchText(c, db) {
+  const skills = (db.data.candidate_skills || []).filter(s => s.candidate_id === c.id).map(s => s.skill_name).join(', ');
+  const exp = (db.data.work_experience || []).filter(w => w.candidate_id === c.id).map(w => `${w.title} at ${w.company}: ${w.description}`).join('. ');
+  return `${c.full_name}. ${c.current_role} at ${c.current_company}. Skills: ${skills}. Summary: ${c.summary}. Exp: ${exp}`.substring(0, 5000);
+}
+
+/**
+ * Index all candidates: Generate and store embeddings.
+ */
+router.post('/index', async (req, res) => {
+  try {
+    const db = getDb();
+    const candidates = db.data.candidates || [];
+    console.log(`Indexing ${candidates.length} candidates...`);
+
+    if (!db.data.candidate_embeddings) db.data.candidate_embeddings = [];
+
+    for (const c of candidates) {
+      const text = getCandidateSearchText(c, db);
+      const embedding = await vectorEngine.generateEmbedding(text);
+
+      const idx = db.data.candidate_embeddings.findIndex(e => e.candidate_id === c.id);
+      if (idx >= 0) {
+        db.data.candidate_embeddings[idx].vector = embedding;
+        db.data.candidate_embeddings[idx].updated_at = new Date().toISOString();
+      } else {
+        db.data.candidate_embeddings.push({
+          candidate_id: c.id,
+          vector: embedding,
+          created_at: new Date().toISOString()
+        });
+      }
+    }
+
+    db.save();
+    res.json({ status: 'success', message: `Indexed ${candidates.length} candidates.` });
+  } catch (err) {
+    console.error('Indexing Error:', err);
+    res.status(500).json({ error: { message: err.message } });
+  }
+});
+
+/**
+ * Semantic Search: Find candidates by conceptual similarity.
+ */
+router.get('/semantic-search', async (req, res) => {
+  try {
+    const { query, limit = 10 } = req.query;
+    if (!query) return res.status(400).json({ error: { message: 'Query is required' } });
+
+    const db = getDb();
+    const queryEmbedding = await vectorEngine.generateEmbedding(query);
+    const embeddings = db.data.candidate_embeddings || [];
+
+    const results = embeddings.map(e => {
+      const similarity = vectorEngine.cosineSimilarity(queryEmbedding, e.vector);
+      return { candidate_id: e.candidate_id, score: similarity };
+    });
+
+    // Sort by similarity score descending
+    results.sort((a, b) => b.score - a.score);
+
+    const topResults = results.slice(0, parseInt(limit));
+    const enriched = topResults.map(r => {
+      const c = db.data.candidates.find(x => x.id === r.candidate_id);
+      if (!c) return null;
+      return {
+        ...buildFrontendCandidate(c, db),
+        match_score: Math.round(r.score * 100)
+      };
+    }).filter(Boolean);
+
+    res.json({ status: 'success', data: enriched });
+  } catch (err) {
+    console.error('Semantic Search Error:', err);
+    res.status(500).json({ error: { message: err.message } });
+  }
 });
 
 module.exports = router;

@@ -11,7 +11,7 @@ import {
   MapPin, Briefcase, Mail, Phone, Calendar, Download,
   CheckCircle2, Sparkles, X, Star, FileText, ChevronRight,
   TrendingUp, Clock, AlertTriangle, Building, ShieldCheck,
-  Filter, MoreHorizontal, AlertCircle, Link
+  Filter, MoreHorizontal, AlertCircle, Link, Send, Paperclip
 } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import api from '../api';
@@ -27,7 +27,7 @@ const STATUS_COLORS = {
 
 const DEFAULT_PAGE_SIZE = 20;
 
-const CandidateModal = ({ candidate, onClose }) => {
+const CandidateModal = ({ candidate, onClose, onOpenEmail }) => {
   const [activeTab, setActiveTab] = useState('overview');
   if (!candidate) return null;
 
@@ -111,15 +111,30 @@ const CandidateModal = ({ candidate, onClose }) => {
           {/* Quick Actions */}
           <div className="mt-auto space-y-3 pt-4 border-t border-glass-border">
             <OrangeButton className="w-full py-3 shadow-[0_4px_16px_rgba(255,107,0,0.3)]">Shortlist Candidate</OrangeButton>
-            <div className="grid grid-cols-2 gap-3">
-              <button className="glass-panel text-gray-900 text-xs font-semibold hover:bg-white/10 py-2.5 rounded-xl transition-all flex items-center justify-center">
-                <Calendar size={14} className="mr-1.5" /> Schedule
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => onOpenEmail(candidate, 'outreach')}
+                className="glass-panel text-gray-900 text-xs font-semibold hover:bg-white/10 py-2.5 rounded-xl transition-all flex items-center justify-center"
+              >
+                <Mail size={13} className="mr-1.5" /> Email
+              </button>
+              <button
+                onClick={() => onOpenEmail(candidate, 'offer')}
+                className="glass-panel text-gray-900 text-xs font-semibold hover:bg-white/10 py-2.5 rounded-xl transition-all flex items-center justify-center"
+              >
+                <FileText size={13} className="mr-1.5" /> Send Offer
+              </button>
+              <button
+                onClick={() => window.open(`/api/v1/company/offer-letter/${candidate.id}`, '_blank')}
+                className="glass-panel text-gray-900 text-xs font-semibold hover:bg-white/10 py-2.5 rounded-xl transition-all flex items-center justify-center"
+              >
+                <FileText size={13} className="mr-1.5" /> Offer Letter
               </button>
               <button
                 onClick={() => window.open(`/api/v1/candidates/${candidate.id}/resume`, '_blank')}
                 className="glass-panel text-gray-900 text-xs font-semibold hover:bg-white/10 py-2.5 rounded-xl transition-all flex items-center justify-center"
               >
-                <Download size={14} className="mr-1.5" /> Resume
+                <Download size={13} className="mr-1.5" /> Resume
               </button>
             </div>
           </div>
@@ -352,9 +367,14 @@ const Candidates = () => {
   const [candidates, setCandidates] = useState([]);
   const [totalCandidates, setTotalCandidates] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedCandidateIds, setSelectedCandidateIds] = useState([]);
-  const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [selectedCandidateIds, setSelectedCandidateIds] = useState([]);
+  const [isSmartSearch, setIsSmartSearch] = useState(false);
+
+  // Email Modal State
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [emailConfig, setEmailConfig] = useState({ to: '', subject: '', body: '', type: '', includeAttachment: false });
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
   const filters = ['All', 'New', 'Shortlisted', 'Interviewing', 'Offer Extended'];
@@ -362,17 +382,25 @@ const Candidates = () => {
   const fetchCandidates = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await api.get('/candidates', {
-        params: {
-          search: searchTerm,
-          status: selectedFilter === 'All' ? undefined : selectedFilter,
-          page: 1,
-          limit: DEFAULT_PAGE_SIZE,
-        },
-      });
-
-      setCandidates(response.data.data || []);
-      setTotalCandidates(response.data.pagination?.total || 0);
+      let response;
+      if (isSmartSearch && searchTerm) {
+        response = await api.get('/candidates/semantic-search', {
+          params: { query: searchTerm, limit: DEFAULT_PAGE_SIZE }
+        });
+        setCandidates(response.data.data || []);
+        setTotalCandidates(response.data.data?.length || 0);
+      } else {
+        response = await api.get('/candidates', {
+          params: {
+            search: searchTerm,
+            status: selectedFilter === 'All' ? undefined : selectedFilter,
+            page: 1,
+            limit: DEFAULT_PAGE_SIZE,
+          },
+        });
+        setCandidates(response.data.data || []);
+        setTotalCandidates(response.data.pagination?.total || 0);
+      }
     } catch (error) {
       console.error('Error fetching candidates:', error);
       setCandidates([]);
@@ -380,7 +408,50 @@ const Candidates = () => {
     } finally {
       setTimeout(() => setIsLoading(false), 500);
     }
-  }, [searchTerm, selectedFilter]);
+  }, [searchTerm, selectedFilter, isSmartSearch]);
+
+  const handleOpenEmailModal = async (candidate, type) => {
+    try {
+      const res = await fetch(`/api/v1/company/email-compose/${candidate.id}?type=${type}`);
+      const d = await res.json();
+      if (d.data) {
+        setEmailConfig({
+          candidateId: candidate.id,
+          to: d.data.to,
+          subject: d.data.subject,
+          body: d.data.body,
+          type: type,
+          includeAttachment: type === 'offer'
+        });
+        setIsEmailModalOpen(true);
+      }
+    } catch (err) {
+      addToast('Failed to load email template', 'error');
+    }
+  };
+
+  const handleSendEmail = async () => {
+    setIsSendingEmail(true);
+    try {
+      const res = await fetch('/api/v1/company/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(emailConfig)
+      });
+      const d = await res.json();
+      if (res.ok) {
+        addToast('Email sent successfully!', 'success');
+        if (d.previewUrl) window.open(d.previewUrl, '_blank');
+        setIsEmailModalOpen(false);
+      } else {
+        addToast(d.error?.message || 'Failed to send email', 'error');
+      }
+    } catch (err) {
+      addToast('Failed to send email', 'error');
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
 
   useEffect(() => {
     fetchCandidates();
@@ -443,17 +514,24 @@ const Candidates = () => {
       {/* TOOLBAR */}
       <GlassCard className="mb-6 p-4 flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
         <div className="flex items-center w-full md:w-auto space-x-4">
-          <div className="relative w-full md:w-80">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <div className="relative w-full md:w-80 group">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-[#FF6B00] transition-colors" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by name, role, skills..."
-              className="w-full bg-white border border-glass-border rounded-xl pl-10 pr-4 py-2 text-sm text-gray-900 focus:outline-none focus:border-[#FF6B00]/50 transition-colors"
+              placeholder={isSmartSearch ? "Describe the perfect candidate..." : "Search by name, role, skills..."}
+              className={`w-full bg-white border border-glass-border rounded-xl pl-10 pr-12 py-2.5 text-sm text-gray-900 focus:outline-none transition-all ${isSmartSearch ? 'ring-2 ring-[#FF6B00]/30 border-[#FF6B00]/50' : 'focus:border-[#FF6B00]/50'}`}
             />
+            <button
+              onClick={() => setIsSmartSearch(!isSmartSearch)}
+              className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-all ${isSmartSearch ? 'bg-[#FF6B00] text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'}`}
+              title={isSmartSearch ? "Smart Search Enabled" : "Enable AI Smart Search"}
+            >
+              <Sparkles size={16} />
+            </button>
           </div>
-          <OrangeButton variant="outline" className="px-3" onClick={() => setIsUploadModalOpen(true)}>
+          <OrangeButton variant="outline" className="px-3 py-2.5" onClick={() => setIsUploadModalOpen(true)}>
             <Upload size={18} />
           </OrangeButton>
         </div>
@@ -537,9 +615,14 @@ const Candidates = () => {
                       </div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <Badge className="!bg-[#FF6B00]/10 !text-[#FF6B00] !border-[#FF6B00]/30 font-bold px-2 py-1 shadow-[inset_0_0_8px_rgba(255,107,0,0.1)]">
-                        <Sparkles size={12} className="inline mr-1 -mt-0.5" /> {cand.score}%
-                      </Badge>
+                      <div className="flex items-center">
+                        <Badge className={`font-bold px-2 py-1 shadow-[inset_0_0_8px_rgba(255,107,0,0.1)] ${isSmartSearch && cand.match_score ? '!bg-[#FF6B00] !text-gray-900' : '!bg-[#FF6B00]/10 !text-[#FF6B00] !border-[#FF6B00]/30'}`}>
+                          {isSmartSearch && cand.match_score ? `${cand.match_score}%` : `${cand.score}%`}
+                        </Badge>
+                        {(isSmartSearch && cand.match_score) && (
+                          <Sparkles size={12} className="ml-1.5 text-[#FF6B00] animate-pulse" />
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex flex-wrap gap-1.5 max-w-xs">
@@ -591,14 +674,80 @@ const Candidates = () => {
       </GlassCard>
 
       {/* RENDER MODAL */}
-      <CandidateModal candidate={selectedCandidate} onClose={() => setSelectedCandidate(null)} />
-
-      {/* CANDIDATE COMPARISON MODAL */}
-      <CandidateComparison
-        isOpen={isCompareOpen}
-        onClose={() => setIsCompareOpen(false)}
-        candidates={selectedCandidates}
+      <CandidateModal
+        candidate={selectedCandidate}
+        onClose={() => setSelectedCandidate(null)}
+        onOpenEmail={handleOpenEmailModal}
       />
+
+      {/* EMAIL MODAL */}
+      <Modal isOpen={isEmailModalOpen} onClose={() => setIsEmailModalOpen(false)} title="Review & Send Email">
+        <div className="space-y-5 p-1">
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Recipient</label>
+            <input
+              type="text"
+              value={emailConfig.to}
+              onChange={e => setEmailConfig(prev => ({ ...prev, to: e.target.value }))}
+              className="w-full bg-[#F5F5F7] border border-glass-border rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-1 focus:ring-[#FF6B00]"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Subject</label>
+            <input
+              type="text"
+              value={emailConfig.subject}
+              onChange={e => setEmailConfig(prev => ({ ...prev, subject: e.target.value }))}
+              className="w-full bg-[#F5F5F7] border border-glass-border rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-1 focus:ring-[#FF6B00]"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Message</label>
+            <textarea
+              rows={8}
+              value={emailConfig.body}
+              onChange={e => setEmailConfig(prev => ({ ...prev, body: e.target.value }))}
+              className="w-full bg-[#F5F5F7] border border-glass-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-1 focus:ring-[#FF6B00] resize-none"
+            />
+          </div>
+
+          <div className="flex items-center justify-between p-3 bg-gray-50 border border-glass-border rounded-xl">
+            <div className="flex items-center">
+              <Paperclip size={16} className="text-[#FF6B00] mr-2" />
+              <div>
+                <div className="text-xs font-bold text-gray-900">Attach Offer Letter PDF</div>
+                <div className="text-[10px] text-gray-500">Automatically generated with company letterhead</div>
+              </div>
+            </div>
+            <div
+              className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${emailConfig.includeAttachment ? 'bg-[#FF6B00]' : 'bg-gray-300'}`}
+              onClick={() => setEmailConfig(prev => ({ ...prev, includeAttachment: !prev.includeAttachment }))}
+            >
+              <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all shadow-sm ${emailConfig.includeAttachment ? 'right-0.5' : 'left-0.5'}`} />
+            </div>
+          </div>
+
+          <div className="flex space-x-3 pt-2">
+            <button
+              onClick={() => setIsEmailModalOpen(false)}
+              className="flex-1 glass-panel text-gray-900 font-bold py-3 rounded-xl hover:bg-white/10 transition-all border border-glass-border"
+            >
+              Cancel
+            </button>
+            <OrangeButton
+              onClick={handleSendEmail}
+              className="flex-1 py-3 flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(255,107,0,0.3)]"
+              disabled={isSendingEmail}
+            >
+              {isSendingEmail ? (
+                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Sending...</>
+              ) : (
+                <><Send size={16} /> Send Email</>
+              )}
+            </OrangeButton>
+          </div>
+        </div>
+      </Modal>
 
     </div>
   );

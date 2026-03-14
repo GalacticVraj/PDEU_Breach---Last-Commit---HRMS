@@ -11,6 +11,7 @@ const aiRouter = require('./routes/ai');
 const analyticsRouter = require('./routes/analytics');
 const webhooksRouter = require('./routes/webhooks');
 const linkedinRouter = require('./routes/linkedin');
+const companyRouter = require('./routes/company');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -21,10 +22,10 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Health check
 app.get('/', (req, res) => {
-  res.json({ message: 'TalentOS API is running', version: '1.0.0' });
+  res.json({ message: 'HireX API is running', version: '2.0.0' });
 });
 app.get(['/api/health', '/api/v1/health'], (req, res) => {
-  res.json({ status: 'ok', version: '1.0.0', name: 'TalentOS API' });
+  res.json({ status: 'ok', version: '2.0.0', name: 'HireX API' });
 });
 
 // Compatibility routes for frontend expecting /api/*
@@ -34,6 +35,7 @@ app.use(['/api/ai', '/api/v1/ai'], aiRouter);
 app.use(['/api/analytics', '/api/v1/analytics'], analyticsRouter);
 app.use(['/api/webhooks', '/api/v1/webhooks'], webhooksRouter);
 app.use(['/api/linkedin', '/api/v1/linkedin'], linkedinRouter);
+app.use(['/api/company', '/api/v1/company'], companyRouter);
 
 // Legacy endpoints used by Jenil frontend
 app.post(['/api/search/natural', '/api/v1/search/natural'], (req, res) => {
@@ -108,7 +110,7 @@ initializeDatabase();
 seedDatabase({ force: process.env.FORCE_SEED === 'true' });
 
 app.listen(PORT, () => {
-  console.log(`TalentOS API running on http://localhost:${PORT}`);
+  console.log(`HireX API running on http://localhost:${PORT}`);
 });
 
 module.exports = app;

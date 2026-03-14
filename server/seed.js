@@ -204,6 +204,22 @@ function seedDatabase({ force = false } = {}) {
     });
   });
 
+  // Company Profile (default for demo)
+  db.data.company_profile = {
+    name: 'Acme Technologies',
+    tagline: 'Building the Future of Innovation',
+    address: '100 Innovation Drive, Suite 400',
+    city: 'San Francisco',
+    state: 'CA',
+    zip: '94105',
+    phone: '+1 (415) 555-0200',
+    email: 'hr@acmetech.com',
+    website: 'www.acmetech.com',
+    hr_name: 'Sarah Mitchell',
+    updated_at: now
+  };
+  db.data.offer_letters = [];
+
   db.save();
   console.log(`Seeding complete: ${candidates.length} candidates, ${jobs.length} jobs, ${db.data.candidate_skills.length} skills`);
 }
