@@ -10,6 +10,7 @@ import Pipeline from './pages/Pipeline';
 import Sources from './pages/Sources';
 import Settings from './pages/Settings';
 import Duplicates from './pages/Duplicates';
+import InterviewPanel from './pages/InterviewPanel';
 import { ToastProvider, useToast } from './context/ToastContext';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/layout/ProtectedRoute';
@@ -54,6 +55,7 @@ const AppContent = () => {
             <Route path="/sources" element={<Sources />} />
             <Route path="/duplicates" element={<Duplicates />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/interview" element={<InterviewPanel />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

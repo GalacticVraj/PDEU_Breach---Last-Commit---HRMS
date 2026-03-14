@@ -1137,4 +1137,60 @@ router.post('/:id/send-email', async (req, res) => {
   }
 });
 
+router.post('/:id/interview-sync', (req, res) => {
+  const { id } = req.params;
+  const { scores, notes, red_flags, duration } = req.body;
+  const db = getDb();
+  
+  const candidate = db.findOne('candidates', c => c.id === id);
+  if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
+
+  // 1. Merge Scores Non-Destructively
+  if (!db.data.interview_feedback) db.data.interview_feedback = [];
+  
+  const existingFeedback = db.data.interview_feedback.find(f => f.candidate_id === id);
+  
+  // Calculate averages
+  const avgTechnical = (scores.p1.technical + scores.p2.technical) / 2;
+  const avgClarity = (scores.p1.clarity + scores.p2.clarity) / 2;
+  const avgSoft = (scores.p1.soft_skills + scores.p2.soft_skills) / 2;
+
+  const newFeedback = {
+    id: uuidv4(),
+    candidate_id: id,
+    panel_sync: {
+      p1: scores.p1,
+      p2: scores.p2,
+      averages: {
+        technical: avgTechnical,
+        clarity: avgClarity,
+        soft_skills: avgSoft
+      }
+    },
+    notes: `${existingFeedback?.notes || ''}\n[Interview ${new Date().toLocaleDateString()}]: ${notes}`,
+    red_flags: [...new Set([...(existingFeedback?.red_flags || []), ...(red_flags || [])])],
+    duration,
+    updated_at: new Date().toISOString()
+  };
+
+  if (existingFeedback) {
+    db.update('interview_feedback', f => f.candidate_id === id, newFeedback);
+  } else {
+    newFeedback.created_at = new Date().toISOString();
+    db.insert('interview_feedback', newFeedback);
+  }
+
+  // 2. Add to Activity Log
+  db.insert('activity_log', {
+    id: uuidv4(),
+    candidate_id: id,
+    action: 'Interview Sync',
+    details: `High-stakes interview synchronized. Avg Match: ${Math.round((avgTechnical + avgClarity + avgSoft) * 3.33)}%`,
+    created_at: new Date().toISOString()
+  });
+
+  db.save();
+  res.json({ success: true, feedback: newFeedback });
+});
+
 module.exports = router;

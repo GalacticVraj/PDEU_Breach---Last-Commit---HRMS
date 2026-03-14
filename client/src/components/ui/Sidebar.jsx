@@ -21,6 +21,12 @@ const navGroups = [
     ]
   },
   {
+    label: 'LIVE SESSION',
+    items: [
+      { id: 'interview', path: '/interview', label: 'Interview Panel', icon: <Zap size={18} />, badge: 'LIVE' },
+    ]
+  },
+  {
     label: 'SYSTEM',
     items: [
       { id: 'settings', path: '/settings', label: 'Settings', icon: <Settings size={18} /> },
