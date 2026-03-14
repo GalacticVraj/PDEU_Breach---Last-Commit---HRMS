@@ -10,6 +10,7 @@ const jobsRouter = require('./routes/jobs');
 const aiRouter = require('./routes/ai');
 const analyticsRouter = require('./routes/analytics');
 const webhooksRouter = require('./routes/webhooks');
+const linkedinRouter = require('./routes/linkedin');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -32,6 +33,7 @@ app.use(['/api/jobs', '/api/v1/jobs'], jobsRouter);
 app.use(['/api/ai', '/api/v1/ai'], aiRouter);
 app.use(['/api/analytics', '/api/v1/analytics'], analyticsRouter);
 app.use(['/api/webhooks', '/api/v1/webhooks'], webhooksRouter);
+app.use(['/api/linkedin', '/api/v1/linkedin'], linkedinRouter);
 
 // Legacy endpoints used by Jenil frontend
 app.post(['/api/search/natural', '/api/v1/search/natural'], (req, res) => {
