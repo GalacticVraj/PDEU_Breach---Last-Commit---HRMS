@@ -1,4 +1,4 @@
-# 🚀 HireX - The AI-Powered Unified Recruitment Platform
+# 🚀 HireX - The AI-Powered Unified Recruitment platform
 
 **HireX** (formerly TalentOS) is a premium, blazing-fast, and deeply intelligent recruitment platform built for modern HR teams. Winning design aesthetics combined with powerful AI integrations (Groq/Anthropic) makes evaluating candidates seamless.
 
