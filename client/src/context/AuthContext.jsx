@@ -1,23 +1,35 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import api from '../api';
+import api, { IS_DEMO } from '../api';
 
 const AuthContext = createContext(null);
 
+// Demo credentials – no backend needed
+const DEMO_TOKEN = 'demo.demo.demo';
+const DEMO_USER  = { id: 'demo', name: 'HR Admin', email: 'admin.hr@companyname.com', role: 'admin' };
+
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [user, setUser]     = useState(null);
+  const [token, setToken]   = useState(localStorage.getItem('token') || null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const initializeAuth = async () => {
-      if (token) {
-        // Set default header for all future requests
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      // ── DEMO MODE: skip backend entirely ─────────────
+      if (IS_DEMO) {
+        localStorage.setItem('token', DEMO_TOKEN);
+        api.defaults.headers.common['Authorization'] = `Bearer ${DEMO_TOKEN}`;
+        setToken(DEMO_TOKEN);
+        setUser(DEMO_USER);
+        setLoading(false);
+        return;
+      }
 
+      // ── Normal mode ───────────────────────────────────
+      if (token) {
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         try {
           const payloadStr = atob(token.split('.')[1]);
-          const payload = JSON.parse(payloadStr);
-          // Check expiry
+          const payload    = JSON.parse(payloadStr);
           if (payload.exp * 1000 < Date.now()) {
             logout();
           } else {
@@ -31,15 +43,20 @@ export const AuthProvider = ({ children }) => {
     };
 
     initializeAuth();
-  }, [token]);
+  }, [token]); // eslint-disable-line
 
   const login = async (email, password) => {
+    // Demo mode: auto-approve any login
+    if (IS_DEMO) {
+      api.defaults.headers.common['Authorization'] = `Bearer ${DEMO_TOKEN}`;
+      localStorage.setItem('token', DEMO_TOKEN);
+      setToken(DEMO_TOKEN);
+      setUser(DEMO_USER);
+      return { success: true };
+    }
+
     try {
-      // Get API base from environment variable
       const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
-
-      console.log('🔗 Attempting login at:', `${API_BASE}/auth/login`);
-
       const response = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -67,7 +84,6 @@ export const AuthProvider = ({ children }) => {
     sessionStorage.removeItem('hasSeenSplash');
     setToken(null);
     setUser(null);
-    // Force a full page reload to trigger the app splash animation
     window.location.href = '/login';
   };
 

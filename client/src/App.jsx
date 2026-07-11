@@ -16,7 +16,9 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import Login from './pages/Login';
 import AIChatAssistant from './components/ui/AIChatAssistant';
+import DemoBanner from './components/ui/DemoBanner';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { IS_DEMO } from './api';
 
 // Scroll to top of main content area on every route change
 const ScrollToTop = ({ scrollRef }) => {
@@ -61,6 +63,7 @@ const AppContent = () => {
         </div>
       </main>
       <AIChatAssistant />
+      {IS_DEMO && <DemoBanner />}
     </div>
   );
 };
